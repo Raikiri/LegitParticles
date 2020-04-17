@@ -14,14 +14,17 @@ namespace almost
     First& Push(Overload<First>)
     {
       if (values.size() < usedCount + 1)
+      {
         values.resize(usedCount + 1);
-      return values[usedCount++];
+        values[usedCount] = std::make_unique<First>();
+      }
+      return *values[usedCount++];
     }
     void Pop(Overload<First>)
     {
       usedCount--;
     }
-    std::vector<First> values;
+    std::vector<std::unique_ptr<First>> values;
     size_t usedCount = 0;
   };
 

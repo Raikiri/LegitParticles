@@ -78,7 +78,7 @@ void CreateClothPhysicsMesh(entt::registry& reg)
   glm::vec2 minPoint = glm::vec2(-200.0f, -200.0f);
   glm::vec2 maxPoint = glm::vec2(200.0f, 200.0f);
 
-  glm::ivec2 count = { 1, 30 };
+  glm::ivec2 count = { 300, 30 };
   glm::ivec2 index;
   std::vector<entt::entity> particleEntities;
   auto c = reg.view<almost::ParticleComponent, almost::ParticleIndexComponent>();
@@ -156,8 +156,7 @@ int main(int argsCount, char **args)
     }
 
     {
-      auto physicsTask = rendererData.inFlightQueue->GetCpuProfiler().StartScopedTask("Physics", legit::Colors::orange);
-      almost::ProcessPhysics(particleGroup, linkGroup, physicsData);
+      almost::ProcessPhysics(particleGroup, linkGroup, physicsData, rendererData.inFlightQueue->GetCpuProfiler());
     }
 
     {

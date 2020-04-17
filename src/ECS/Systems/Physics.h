@@ -1,3 +1,4 @@
+#include "../../LegitVulkan/CpuProfiler.h"
 #include "../Context/PhysicsData.h"
 #include "../Context/MeshRendererData.h"
 #include "../Components/ParticleComponent.h"
@@ -124,15 +125,17 @@ namespace almost
     }
   }
 
-  void SolveLinksNonlinearGauss(ParticleGroup particles, LinkGroup links)
+  void SolveLinksNonlinearGauss(ParticleGroup particles, LinkGroup links, legit::CpuProfiler &profiler)
   {
+    auto physicsTask = profiler.StartScopedTask("[Physics] Nonlinear", legit::Colors::greenSea);
+
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
     MassComponent* massComponents = particles.raw<MassComponent>();
 
     LinkIndexComponent* linkIndexComponents = links.raw<LinkIndexComponent>();
     LinkComponent* linkComponents = links.raw<LinkComponent>();
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 50; i++)
     {
       for (size_t linkIndex = 0; linkIndex < links.size(); linkIndex++)
       {
@@ -174,6 +177,7 @@ namespace almost
   void BuildSparseJacobian(ParticleGroup particles, LinkGroup links,
     PhysicsData::JacobianMatrix& jacobianMatrix, float* positionRightSideVector, float* velocityRightSideVector, float *accelerationRightSide)
   {
+    jacobianMatrix.Clear();
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
     MassComponent* massComponents = particles.raw<MassComponent>();
 
@@ -226,6 +230,7 @@ namespace almost
 
   void BuildSparseMassMatrix(ParticleGroup particles, PhysicsData::MassMatrix& massMatrix)
   {
+    massMatrix.Clear();
     size_t particlesCount = particles.size();
     MassComponent* massComponents = particles.raw<MassComponent>();
     for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
@@ -238,6 +243,7 @@ namespace almost
 
   void BuildSparseVectorFromDense(float* values, size_t count, PhysicsData::RightSideMatrix& sparseVector)
   {
+    sparseVector.Clear();
     for (size_t rowIndex = 0; rowIndex < count; rowIndex++)
     {
       char columnIndex = 0;
@@ -345,151 +351,190 @@ namespace almost
     left.vec += right.vec;
     return left;
   }
-  void SolveLinksMultigrid(ParticleGroup particles, LinkGroup links)
+
+  using ElemType0 = almost::SparseMatrix<size_t, size_t, Vector2f>::Element;
+  using ElemType1 = almost::SparseMatrix<size_t, size_t, float>::Element;
+  using ElemType2 = almost::SparseMatrix<size_t, char, Vector2f>::Element;
+  using StorageType = almost::StackStorage<PhysicsData::SystemMatrix, PhysicsData::JacobianMatrix, PhysicsData::DeltaMatrix, PhysicsData::RightSideMatrix, std::vector<float>, std::vector<size_t>, std::vector<Vector2f>, std::vector<ElemType0>, std::vector<ElemType1>, std::vector<ElemType2>>;
+  StorageType stackStorage;
+
+  PhysicsData::JacobianTransposedMatrix massJacobianTransposed;
+  PhysicsData::SystemMatrix systemMatrix;
+
+  almost::AlgebraicMultigridSolver<PhysicsData::LinkIndex, float> multigridSolver;
+
+  void SolveLinksMultigrid(ParticleGroup particles, LinkGroup links, legit::CpuProfiler &profiler)
   {
-    using ElemType0 = almost::SparseMatrix<size_t, size_t, Vector2f>::Element;
-    using ElemType1 = almost::SparseMatrix<size_t, size_t, float>::Element;
-    using ElemType2 = almost::SparseMatrix<size_t, char, Vector2f>::Element;
-    using StorageType = almost::StackStorage<std::vector<float>, std::vector<size_t>, std::vector<Vector2f>, std::vector<ElemType0>, std::vector<ElemType1>, std::vector<ElemType2>, PhysicsData::SystemMatrix>;
-    StorageType stackStorage;
-
-
-    std::vector<float> accelerationLambdas;
-    std::vector<float> velocityLambdas;
-    std::vector<float> positionLambdas;
-
-    std::vector<float> positionRightSide;
-    std::vector<float> velocityRightSide;
-    std::vector<float> accelerationRightSide;
-
-    PhysicsData::JacobianMatrix jacobianMatrix;
-    PhysicsData::MassMatrix massMatrix;
-    PhysicsData::JacobianTransposedMatrix jacobianTransposed;
-    PhysicsData::JacobianTransposedMatrix massJacobianTransposed;
-    PhysicsData::SystemMatrix systemMatrix;
-
-    PhysicsData::DeltaMatrix velocityDeltaMatrix;
-    PhysicsData::DeltaMatrix positionDeltaMatrix;
-    PhysicsData::DeltaMatrix accelerationDeltaMatrix;
+    auto positionRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
+    auto positionRightSide = positionRightSideHandle.Get();
+    auto velocityRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
+    auto velocityRightSide = velocityRightSideHandle.Get();
+    auto accelerationRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
+    auto accelerationRightSide = accelerationRightSideHandle.Get();
 
     positionRightSide.resize(links.size());
     velocityRightSide.resize(links.size());
     accelerationRightSide.resize(links.size());
 
-    BuildSparseJacobian(particles, links, jacobianMatrix, positionRightSide.data(), velocityRightSide.data(), accelerationRightSide.data());
+    size_t iterationsCount = 10;
 
-    BuildSparseMassMatrix(particles, massMatrix);
-
-    jacobianTransposed.BuildFromTransposed(jacobianMatrix, stackStorage);
-    massJacobianTransposed.BuildFromSparseProduct(massMatrix, jacobianTransposed, stackStorage);
-    systemMatrix.BuildFromSparseProduct(jacobianMatrix, massJacobianTransposed, stackStorage);
-
-    accelerationLambdas.resize(links.size());
-    size_t iterationsCount = 5;
-    almost::AlgebraicMultigridSolver<PhysicsData::LinkIndex, float> multigridSolver;
-    multigridSolver.LoadSystem(systemMatrix, links.size(), stackStorage);
-
-    /*if (0)
     {
-      GaussSolveSparseSystem(systemMatrix, accelerationRightSide.data(), accelerationLambdas.data(), iterationsCount);
+      auto massMatrixHandle = stackStorage.GetHandle<PhysicsData::MassMatrix>();
+      auto& massMatrix = massMatrixHandle.Get();
+
+      auto jacobianMatrixHandle = stackStorage.GetHandle<PhysicsData::JacobianMatrix>();
+      auto& jacobianMatrix = jacobianMatrixHandle.Get();
+
+      auto jacobianTransposedMatrixHandle = stackStorage.GetHandle<PhysicsData::JacobianTransposedMatrix>();
+      auto& jacobianTransposedMatrix = jacobianTransposedMatrixHandle.Get();
+
+      {
+        auto physicsTask = profiler.StartScopedTask("[Physics] Jacobian", legit::Colors::greenSea);
+        BuildSparseJacobian(particles, links, jacobianMatrix, positionRightSide.data(), velocityRightSide.data(), accelerationRightSide.data());
+
+      }
+      {
+        auto physicsTask = profiler.StartScopedTask("[Physics] System", legit::Colors::sunFlower);
+
+        BuildSparseMassMatrix(particles, massMatrix);
+        jacobianTransposedMatrix.BuildFromTransposed(jacobianMatrix, stackStorage);
+        massJacobianTransposed.BuildFromSparseProduct(massMatrix, jacobianTransposedMatrix, stackStorage);
+        systemMatrix.BuildFromSparseProduct(jacobianMatrix, massJacobianTransposed, stackStorage);
+      }
     }
-    else
+
     {
-
-      multigridSolver.Solve(accelerationRightSide.data(), iterationsCount, stackStorage);
-
-      std::copy_n(multigridSolver.GetValues(), links.size(), accelerationLambdas.data());
+      auto physicsTask = profiler.StartScopedTask("[Physics] Load", legit::Colors::pomegranate);
+      multigridSolver.LoadSystem(systemMatrix, links.size(), stackStorage);
     }
 
-    PhysicsData::RightSideMatrix accelerationLambdasSparse;
-    BuildSparseVectorFromDense(accelerationLambdas.data(), accelerationLambdas.size(), accelerationLambdasSparse);
-    accelerationDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, accelerationLambdasSparse, stackStorage);
-    ApplyAccelerationDeltas(particles, accelerationDeltaMatrix);*/
+    {
+      auto physicsTask = profiler.StartScopedTask("[Physics] Solve", legit::Colors::amethyst);
 
-    #if !defined(POSITION_BASED)
-      velocityLambdas.resize(links.size());
+      /*
+      accelerationLambdas.resize(links.size());
       if (0)
       {
-        GaussSolveSparseSystem(systemMatrix, velocityRightSide.data(), velocityLambdas.data(), iterationsCount);
+        GaussSolveSparseSystem(systemMatrix, accelerationRightSide.data(), accelerationLambdas.data(), iterationsCount);
       }
       else
       {
-        multigridSolver.Solve(velocityRightSide.data(), iterationsCount, stackStorage);
 
-        std::copy_n(multigridSolver.GetValues(), links.size(), velocityLambdas.data());
+        multigridSolver.Solve(accelerationRightSide.data(), iterationsCount, stackStorage);
+
+        std::copy_n(multigridSolver.GetValues(), links.size(), accelerationLambdas.data());
       }
-      PhysicsData::RightSideMatrix velocityLambdasSparse;
-      BuildSparseVectorFromDense(velocityLambdas.data(), velocityLambdas.size(), velocityLambdasSparse);
-      velocityDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, velocityLambdasSparse, stackStorage);
-      ApplyVelocityDeltas(particles, velocityDeltaMatrix);
-    #endif
 
-    positionLambdas.resize(links.size());
-    if (0)
-    {
-      GaussSolveSparseSystem(systemMatrix, positionRightSide.data(), positionLambdas.data(), iterationsCount);
+      PhysicsData::RightSideMatrix accelerationLambdasSparse;
+      BuildSparseVectorFromDense(accelerationLambdas.data(), accelerationLambdas.size(), accelerationLambdasSparse);
+      accelerationDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, accelerationLambdasSparse, stackStorage);
+      ApplyAccelerationDeltas(particles, accelerationDeltaMatrix);*/
+
+      #if !defined(POSITION_BASED)
+        velocityLambdas.resize(links.size());
+        if (0)
+        {
+          GaussSolveSparseSystem(systemMatrix, velocityRightSide.data(), velocityLambdas.data(), iterationsCount);
+        }
+        else
+        {
+          multigridSolver.Solve(velocityRightSide.data(), iterationsCount, stackStorage);
+
+          std::copy_n(multigridSolver.GetValues(), links.size(), velocityLambdas.data());
+        }
+        BuildSparseVectorFromDense(velocityLambdas.data(), velocityLambdas.size(), velocityLambdasSparse);
+        velocityDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, velocityLambdasSparse, stackStorage);
+        ApplyVelocityDeltas(particles, velocityDeltaMatrix);
+      #endif
+
+      {
+        auto positionLambdasSparseHandle = stackStorage.GetHandle<PhysicsData::RightSideMatrix>();
+        auto &positionLambdasSparse = positionLambdasSparseHandle.Get();
+
+        auto positionDeltaMatrixHandle = stackStorage.GetHandle<PhysicsData::DeltaMatrix>();
+        auto& positionDeltaMatrix = positionDeltaMatrixHandle.Get();
+        if (0)
+        {
+          auto positionLambdasHandle = stackStorage.GetHandle<std::vector<float>>();
+          auto &positionLambdas = positionLambdasHandle.Get();
+          positionLambdas.resize(links.size());
+
+          GaussSolveSparseSystem(systemMatrix, positionRightSide.data(), positionLambdas.data(), iterationsCount);
+          BuildSparseVectorFromDense(positionLambdas.data(), positionLambdas.size(), positionLambdasSparse);
+        }
+        else
+        {
+          multigridSolver.Solve(positionRightSide.data(), iterationsCount, stackStorage);
+          BuildSparseVectorFromDense(multigridSolver.GetValues(), links.size(), positionLambdasSparse);
+        }
+
+        positionDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, positionLambdasSparse, stackStorage);
+        ApplyPositionDeltas(particles, positionDeltaMatrix);
+      }
     }
-    else
-    {
-      multigridSolver.Solve(positionRightSide.data(), iterationsCount, stackStorage);
-
-      std::copy_n(multigridSolver.GetValues(), links.size(), positionLambdas.data());
-    }
-
-    PhysicsData::RightSideMatrix positionLambdasSparse;
-    BuildSparseVectorFromDense(positionLambdas.data(), positionLambdas.size(), positionLambdasSparse);
-    positionDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, positionLambdasSparse, stackStorage);
-    ApplyPositionDeltas(particles, positionDeltaMatrix);
   }
 
   void ProcessPhysics(
     ParticleGroup particles,
     LinkGroup links,
-    almost::PhysicsData& physicsData)
+    almost::PhysicsData& physicsData,
+    legit::CpuProfiler &profiler)
   {
     float dt = 1e-2f;
     glm::vec3 gravity = { 0.0f, -10000.0f, 0.0f };
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
     ParticleIndexComponent* particleIndicesComponents = particles.raw<ParticleIndexComponent>();
     MassComponent* massComponents = particles.raw<MassComponent>();
-    for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
-    {
-      MassComponent& massComponent = massComponents[particleIndex];
-      ParticleComponent& particleComponent = particleComponents[particleIndex];
-      particleComponent.acceleration = massComponent.usesGravity ? gravity : glm::vec3(0.0f, 0.0f, 0.0f);
-      particleIndicesComponents[particleIndex].index = particleIndex;
-    }
 
-    LinkComponent* linkComponents = links.raw<LinkComponent>();
-    LinkIndexComponent* linkIndexComponents = links.raw<LinkIndexComponent>();
-    for (size_t linkIndex = 0; linkIndex < links.size(); linkIndex++)
     {
-      auto particleEntity0 = linkComponents[linkIndex].entities[0];
-      auto particleEntity1 = linkComponents[linkIndex].entities[1];
-      assert(particles.contains(particleEntity0));
-      assert(particles.contains(particleEntity1));
-      linkIndexComponents[linkIndex].indices[0] = particles.get<ParticleIndexComponent>(particleEntity0).index;
-      linkIndexComponents[linkIndex].indices[1] = particles.get<ParticleIndexComponent>(particleEntity1).index;
-    }
-    /*for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
-    {
-      ParticleComponent& particleComponent = particleComponents[particleIndex];
-      particleComponent.velocity += particleComponent.acceleration * dt;
-    }*/
-    //SolveLinksNonlinearGauss(particles, links);
-    SolveLinksMultigrid(particles, links);
+      auto physicsTask = profiler.StartScopedTask("[Physics] Links", legit::Colors::sunFlower);
 
-    for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
+      for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
+      {
+        MassComponent& massComponent = massComponents[particleIndex];
+        ParticleComponent& particleComponent = particleComponents[particleIndex];
+        particleComponent.acceleration = massComponent.usesGravity ? gravity : glm::vec3(0.0f, 0.0f, 0.0f);
+        particleIndicesComponents[particleIndex].index = particleIndex;
+      }
+
+      LinkComponent* linkComponents = links.raw<LinkComponent>();
+      LinkIndexComponent* linkIndexComponents = links.raw<LinkIndexComponent>();
+      for (size_t linkIndex = 0; linkIndex < links.size(); linkIndex++)
+      {
+        auto particleEntity0 = linkComponents[linkIndex].entities[0];
+        auto particleEntity1 = linkComponents[linkIndex].entities[1];
+        assert(particles.contains(particleEntity0));
+        assert(particles.contains(particleEntity1));
+        linkIndexComponents[linkIndex].indices[0] = particles.get<ParticleIndexComponent>(particleEntity0).index;
+        linkIndexComponents[linkIndex].indices[1] = particles.get<ParticleIndexComponent>(particleEntity1).index;
+      }
+    }
     {
-      ParticleComponent& particleComponent = particleComponents[particleIndex];
-      #if defined(POSITION_BASED)
-        glm::vec2 tmpPos = particleComponent.pos;
-        particleComponent.pos += (particleComponent.pos - particleComponent.prevPos) + particleComponent.acceleration * dt * dt;
-        particleComponent.prevPos = tmpPos;
-      #else
+
+      /*for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
+      {
+        ParticleComponent& particleComponent = particleComponents[particleIndex];
         particleComponent.velocity += particleComponent.acceleration * dt;
-        particleComponent.pos += particleComponent.velocity * dt;
-      #endif
+      }*/
+      //SolveLinksNonlinearGauss(particles, links, profiler);
+
+      SolveLinksMultigrid(particles, links, profiler);
+    }
+
+    {
+      //auto physicsTask = profiler.StartScopedTask("[Physics] Integration", legit::Colors::greenSea);
+      for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
+      {
+        ParticleComponent& particleComponent = particleComponents[particleIndex];
+        #if defined(POSITION_BASED)
+          glm::vec2 tmpPos = particleComponent.pos;
+          particleComponent.pos += (particleComponent.pos - particleComponent.prevPos) + particleComponent.acceleration * dt * dt;
+          particleComponent.prevPos = tmpPos;
+        #else
+          particleComponent.velocity += particleComponent.acceleration * dt;
+          particleComponent.pos += particleComponent.velocity * dt;
+        #endif
+      }
     }
   }
 
