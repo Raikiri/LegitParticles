@@ -1,0 +1,316 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="spirv-cross">
+      <UniqueIdentifier>{ad9dea2d-2f83-466a-a2dd-1a255eb4dd2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tiny_obj_loader">
+      <UniqueIdentifier>{d3f5f4e9-df57-4646-a521-13d056a5f117}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jsoncpp">
+      <UniqueIdentifier>{910655ba-5851-440f-b011-f68f952121b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LegitVulkan">
+      <UniqueIdentifier>{adc11b98-b158-4057-9fde-f66c663ea000}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{4fcf2503-2d76-4ea4-bf2e-d05f27f4d709}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGuiUtils">
+      <UniqueIdentifier>{34cc34e4-e074-4eea-8269-6b34251a9b95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Maths">
+      <UniqueIdentifier>{4fa3f683-a0e3-43b7-a18f-7b6de9d1c339}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{1351fb2e-b4fa-499f-bca3-2268e07457d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ECS">
+      <UniqueIdentifier>{147653c4-5775-443a-a458-f0a5ce860c8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ECS\Components">
+      <UniqueIdentifier>{bba6fc1c-9eab-4bf3-a842-32b0fbf5de6f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ECS\Systems">
+      <UniqueIdentifier>{de52b094-56b7-41b2-ab0e-acb4c9c24ad3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ECS\Context">
+      <UniqueIdentifier>{165a934a-4635-405a-a811-2325cb02304b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cfg.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cpp.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cross.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cross_parsed_ir.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cross_util.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_glsl.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_hlsl.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_msl.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_parser.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\spirv-cross\spirv_reflect.cpp">
+      <Filter>spirv-cross</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\tiny_obj_loader\include\tiny_obj_loader.cc">
+      <Filter>tiny_obj_loader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\jsoncpp\jsoncpp.cpp">
+      <Filter>jsoncpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\imgui\imgui_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\imgui\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\imgui\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\imgui\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\dependencies\spirv-cross\GLSL.std.450.h">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_cfg.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_common.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_cpp.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_cross.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_cross_parsed_ir.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_cross_util.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_glsl.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_hlsl.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_msl.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_parser.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\spirv-cross\spirv_reflect.hpp">
+      <Filter>spirv-cross</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\imgui\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\imgui\imconfig.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\imgui\imstb_truetype.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\imgui\imstb_textedit.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\imgui\imstb_rectpack.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\imgui\imgui_internal.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ImGuiUtils\ImGuiProfilerRenderer.h">
+      <Filter>ImGuiUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Core.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\ImageLoader.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\ShaderMemoryPool.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\ShaderProgram.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\DescriptorSetCache.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\RenderGraph.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Image.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\PresentQueue.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Swapchain.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\VertexDeclaration.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\TimestampQuery.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Synchronization.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Surface.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\StagedResources.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\ShaderModule.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Sampler.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\RenderPassCache.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\RenderPass.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\QueueIndices.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Pool.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\PipelineCache.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Pipeline.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\LegitVulkan.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\ImageView.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Handles.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\GpuProfiler.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Framebuffer.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\CpuProfiler.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\Buffer.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\LegitVulkan\ProfilerTask.h">
+      <Filter>LegitVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\AlgebraicMultigridSolver.h">
+      <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\TensorMaths.h">
+      <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\SparseMatrix.h">
+      <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Utils\CachedArray.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\RendererData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\Renderer.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Utils\GlmInclude.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\WindowData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\Window.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\Camera.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\CameraData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\InputData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\Input.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Utils\ScopedCtx.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\MeshRendererData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\MeshRenderer.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\Physics.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\PhysicsData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\FullscreenRenderer.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\FullscreenRendererData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Components\LinkComponent.h">
+      <Filter>ECS\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Components\ParticleComponent.h">
+      <Filter>ECS\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\SparseMatrixUtils.h">
+      <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\StackStorage.h">
+      <Filter>Maths</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+{
+  "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+  "files.associations": {
+    "*.frag": "objective-c",
+    "*.vert": "objective-c",
+    "*.comp": "objective-c",
+    "*.decl": "objective-cpp",
+    "*.ffx": "objective-cpp",
+    "*.hlsl": "objective-cpp",
+    "*.ao": "ini",
+    "*.aoc": "ini",
+    "*.mat": "ini",
+    "*.texprops": "ini",
+    "memory": "cpp",
+    "system_error": "cpp",
+    "xlocale": "cpp"
+  }
+}
