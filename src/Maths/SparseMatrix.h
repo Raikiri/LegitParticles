@@ -13,13 +13,15 @@ namespace almost
       return val0 * val1;
     }
   };
-  template<typename RowIndexTypeT, typename ColumnIndexTypeT, typename ValueTypeT>
+  template<typename RowDimensionT, typename ColumnDimensionT, typename ValueTypeT>
   struct SparseMatrix
   {
-    using RowIndexType = RowIndexTypeT;
-    using ColumnIndexType = ColumnIndexTypeT;
+    using RowDimension = RowDimensionT;
+    using ColumnDimension = ColumnDimensionT;
+    using RowIndexType = typename RowDimension::IndexType;
+    using ColumnIndexType = typename ColumnDimension::IndexType;
     using ValueType = ValueTypeT;
-    using SelfType = SparseMatrix<RowIndexType, ColumnIndexType, ValueType>;
+    using SelfType = SparseMatrix<RowDimension, ColumnDimension, ValueType>;
     void AddRow(RowIndexType rowIndex, const ColumnIndexType *columnIndices, const ValueType *values, size_t termsCount)
     {
       Row newRow;
@@ -96,8 +98,10 @@ namespace almost
           });
       }
     };
-    SelfType &BuildSorted(const SparseMatrix<RowIndexType, ColumnIndexType, ValueType> &src)
+    SelfType &BuildSorted(const SelfType &src)
     {
+      this->rowDimension = src.rowDimension;
+      this->columnDimension = src.columnDimension;
       this->rows = src.rows;
       this->rowTerms.resize(src.rowTerms.size());
 
@@ -128,10 +132,9 @@ namespace almost
           return left.columnIndex < right.columnIndex;
         });
     }
-    SelfType &BuildFromSortedElements(const Element *elements, size_t count)
+    SelfType &BuildFromSortedElements(const Element *elements, size_t count, RowDimension rowDimension, ColumnDimension columnDimension)
     {
-      rows.clear();
-      rowTerms.clear();
+      BuildEmpty(rowDimension, columnDimension);
       for (size_t index = 0; index < count; index++)
       {
         /*if (elements[index].value == ValueType(0))
@@ -164,11 +167,12 @@ namespace almost
           rowTerms.push_back(newTerm);
         }
       }
+      assert(CheckSortedIndices());
       return *this;
     }
 
     template<typename StorageType>
-    SelfType &BuildFromTransposed(const SparseMatrix<ColumnIndexType, RowIndexType, ValueType> &srcMatrix, StorageType &storage)
+    SelfType &BuildFromTransposed(const SparseMatrix<ColumnDimension, RowDimension, ValueType> &srcMatrix, StorageType &storage)
     {
       auto elements = storage.template GetHandle<std::vector<Element> >( );
       elements.Get().clear();
@@ -186,21 +190,23 @@ namespace almost
       }
 
       SelfType::SortElements(elements.Get().data(), elements.Get().size());
-      return BuildFromSortedElements(elements.Get().data(), elements.Get().size());
+      return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), srcMatrix.columnDimension, srcMatrix.rowDimension);
     }
 
-    template<typename Product = BasicProduct<ValueType>, typename ValueType0, typename ValueType1, typename CommonIndexType, typename StorageType>
-    SelfType &BuildFromDenseProduct(const SparseMatrix<RowIndexType, CommonIndexType, ValueType0>& matrix0, const SparseMatrix<ColumnIndexType, CommonIndexType, ValueType1> &matrix1Transposed, StorageType &storage)
+    template<typename Product = BasicProduct<ValueType>, typename ValueType0, typename ValueType1, typename CommonDimension, typename StorageType>
+    SelfType &BuildFromDenseProduct(const SparseMatrix<RowDimension, CommonDimension, ValueType0>& matrix0, const SparseMatrix<ColumnDimension, CommonDimension, ValueType1> &matrix1Transposed, StorageType &storage)
     {
-      Clear();
+      assert(matrix0.columnDimension.size == matrix1Transposed.columnDimension.size);
+
+      BuildEmpty(matrix0.rowDimension, matrix1Transposed.rowDimension);
       auto elements = storage.template GetHandle<std::vector<Element>>();
       elements.Get().clear();
 
       size_t rowNumber0 = 0;
       size_t rowNumber1 = 0;
-      for (size_t rowNumber1 = 0; rowNumber1 < matrix1Transposed.rows.size(); rowNumber1++)
+      for (size_t rowNumber0 = 0; rowNumber0 < matrix0.rows.size(); rowNumber0++)
       {
-        for(size_t rowNumber0 = 0; rowNumber0 < matrix0.rows.size(); rowNumber0++)
+        for (size_t rowNumber1 = 0; rowNumber1 < matrix1Transposed.rows.size(); rowNumber1++)
         {
           auto &row0 = matrix0.rows[rowNumber0];
           auto &row1 = matrix1Transposed.rows[rowNumber1];
@@ -234,13 +240,14 @@ namespace almost
         }
       }
 
-      return BuildFromSortedElements(elements.Get().data(), elements.Get().size());
+      return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), matrix0.rowDimension, matrix1Transposed.rowDimension);
     }
 
-    template<typename Product = BasicProduct<ValueType>, typename CommonIndexType, typename ValueType0, typename ValueType1, typename StorageType>
-    SelfType &BuildFromSparseProduct(const SparseMatrix<RowIndexType, CommonIndexType, ValueType0>& matrix0, const SparseMatrix<CommonIndexType, ColumnIndexType, ValueType1>& matrix1, StorageType& storage)
+    template<typename Product = BasicProduct<ValueType>, typename CommonDimension, typename ValueType0, typename ValueType1, typename StorageType>
+    SelfType &BuildFromSparseProduct(const SparseMatrix<RowDimension, CommonDimension, ValueType0>& matrix0, const SparseMatrix<CommonDimension, ColumnDimension, ValueType1>& matrix1, StorageType& storage)
     {
-      Clear();
+      assert(matrix0.columnDimension.size == matrix1.rowDimension.size);
+      BuildEmpty(matrix0.rowDimension, matrix1.columnDimension);
       auto elements = storage.template GetHandle<std::vector<Element>>();
       elements.Get().clear();
 
@@ -269,8 +276,8 @@ namespace almost
           }
         }
       }
-
-      return BuildFromSortedElements(elements.Get().data(), elements.Get().size());
+      SortElements(elements.Get().data(), elements.Get().size());
+      return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), matrix0.rowDimension, matrix1.columnDimension);
     }
 
     size_t FindRowNumber(RowIndexType rowIndex) const
@@ -306,8 +313,10 @@ namespace almost
       return false;
     }
 
-    void Clear()
+    void BuildEmpty(RowDimension rowDimension, ColumnDimension columnDimension)
     {
+      this->rowDimension = rowDimension;
+      this->columnDimension = columnDimension;
       rows.clear();
       rowTerms.clear();
     }
@@ -333,5 +342,7 @@ namespace almost
       ValueType value;
     };
     std::vector<RowTerm> rowTerms;
+    RowDimension rowDimension;
+    ColumnDimension columnDimension;
   };
 }

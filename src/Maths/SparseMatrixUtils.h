@@ -2,9 +2,10 @@
 #include "SparseMatrix.h"
 namespace almost
 {
-  template<typename IndexType, typename ValueType>
-  static void ComputeSparseDiag(const SparseMatrix<IndexType, IndexType, ValueType>& matrix, ValueType* diagCoeffs)
+  template<typename DimensionType, typename ValueType>
+  static void ComputeSparseDiag(const SparseMatrix<DimensionType, DimensionType, ValueType>& matrix, ValueType* diagCoeffs)
   {
+    using IndexType = typename DimensionType::IndexType;
     //diagCoeffs.resize(valuesCount);
 
     for (size_t valueNumber = 0; valueNumber < matrix.GetRowsCount(); valueNumber++)
@@ -19,11 +20,12 @@ namespace almost
     }
   }
 
-  template<typename IndexType, typename ValueType, typename StorageType>
-  static void BuildSparseConnectivityMatrix(const SparseMatrix<IndexType, IndexType, ValueType>& srcMatrix, ValueType* srcDiag, SparseMatrix<IndexType, IndexType, ValueType>& dstConnectivityMatrix, StorageType& tmpStorage)
+  template<typename DimensionType, typename ValueType, typename StorageType>
+  static void BuildSparseConnectivityMatrix(const SparseMatrix<DimensionType, DimensionType, ValueType>& srcMatrix, ValueType* srcDiag, SparseMatrix<DimensionType, DimensionType, ValueType>& dstConnectivityMatrix, StorageType& tmpStorage)
   {
+    using IndexType = typename DimensionType::IndexType;
     //BuildSparseDiag(srcMatrix, dstDiagCoeff);
-    dstConnectivityMatrix.Clear();
+    dstConnectivityMatrix.BuildEmpty(srcMatrix.rowDimension, srcMatrix.columnDimension);
 
     //std::vector<IndexType> connectedIndices;
     //std::vector<float> connectedWeights;
@@ -151,9 +153,15 @@ namespace almost
   }
 
 
-  template<typename FineIndexType, typename CoarseIndexType, typename ValueType, typename StorageType>
-  static void BuildTentativeInterpolationMatrix(const SparseMatrix<FineIndexType, FineIndexType, ValueType>& srcFineConnectivityMatrix, FineIndexType valuesCount, SparseMatrix<CoarseIndexType, FineIndexType, ValueType>& dstInterpolationMatrix, StorageType& storage)
+  template<typename FineDimensionType, typename CoarseDimensionType, typename ValueType, typename StorageType>
+  static void BuildTentativeInterpolationMatrix(
+    const SparseMatrix<FineDimensionType, FineDimensionType, ValueType>& srcFineConnectivityMatrix,
+    typename FineDimensionType::IndexType valuesCount,
+    SparseMatrix<CoarseDimensionType, FineDimensionType, ValueType>& dstInterpolationMatrix,
+    StorageType& storage)
   {
+    using CoarseIndexType = typename CoarseDimensionType::IndexType;
+    using FineIndexType = typename FineDimensionType::IndexType;
     auto aggregationIndicesHandle = storage.template GetHandle<std::vector<CoarseIndexType>>();
     auto aggregationIndices = aggregationIndicesHandle.Get();
     auto adjacentIndicesHandle = storage.template GetHandle<std::vector<FineIndexType>>();
@@ -221,7 +229,7 @@ namespace almost
         aggregateSizes[aggregateIndex]++;
     }
 
-    dstInterpolationMatrix.Clear();
+    dstInterpolationMatrix.BuildEmpty(srcFineConnectivityMatrix.rowDimension, CoarseDimensionType{ aggregatesCount });
     //SparseMatrix<IndexType, IndexType, ValueType> tentativeInterpolationMatrix;
     for (size_t valueIndex = 0; valueIndex < valuesCount; valueIndex++)
     {
@@ -234,10 +242,10 @@ namespace almost
     assert(dstInterpolationMatrix.CheckSortedIndices());
   }
 
-  template<typename FineIndexType, typename CoarseIndexType, typename ValueType, typename StorageType>
-  static void BuildInterpolationMatrix(const SparseMatrix<FineIndexType, FineIndexType, ValueType> &srcFineSystemMatrix, FineIndexType valuesCount, SparseMatrix<CoarseIndexType, FineIndexType, ValueType> &dstInterpolationMatrix, StorageType &storage)
+  template<typename FineDimensionType, typename CoarseDimensionType, typename ValueType, typename StorageType>
+  static void BuildInterpolationMatrix(const SparseMatrix<FineDimensionType, FineDimensionType, ValueType> &srcFineSystemMatrix, typename FineDimensionType::IndexType valuesCount, SparseMatrix<FineDimensionType, CoarseDimensionType, ValueType> &dstInterpolationMatrix, StorageType &storage)
   {
-    using SystemMatrix = SparseMatrix<FineIndexType, FineIndexType, ValueType>;
+    using SystemMatrix = SparseMatrix<FineDimensionType, FineDimensionType, ValueType>;
     auto diagCoeffsHandle = storage.template GetHandle<std::vector<ValueType>>();
     auto diagCoeffs = diagCoeffsHandle.Get();
     diagCoeffs.resize(valuesCount);
@@ -248,7 +256,6 @@ namespace almost
     almost::ComputeSparseDiag(srcFineSystemMatrix, diagCoeffs.data());
     almost::BuildSparseConnectivityMatrix(srcFineSystemMatrix, diagCoeffs.data(), connectivityMatrix, storage);
 
-    dstInterpolationMatrix.Clear();
 
     BuildTentativeInterpolationMatrix(connectivityMatrix, valuesCount, dstInterpolationMatrix, storage);
     /*SparseMatrix<IndexType, IndexType, ValueType> smootherMatrix;
@@ -303,9 +310,10 @@ namespace almost
     //int p = 1;
   }
 
-  template<typename IndexType, typename ValueType, typename StorageType>
-  void IterateGaussSeidel(const SparseMatrix<IndexType, IndexType, ValueType> systemMatrix, const ValueType *rightSide, ValueType *values, size_t iterationsCount, StorageType &storage)
+  template<typename DimensionType, typename ValueType, typename StorageType>
+  void IterateGaussSeidel(const SparseMatrix<DimensionType, DimensionType, ValueType> systemMatrix, const ValueType *rightSide, ValueType *values, size_t iterationsCount, StorageType &storage)
   {
+    using IndexType = typename DimensionType::IndexType;
     auto adjacentIndicesHandle = storage.template GetHandle<std::vector<IndexType>>();
     auto adjacentIndices = adjacentIndicesHandle.Get();
     auto adjacentWeightsHandle = storage.template GetHandle<std::vector<ValueType>>();
@@ -343,9 +351,10 @@ namespace almost
     }
   }
 
-  template<typename IndexType, typename ValueType, typename StorageType>
-  void BuildResiduals(const SparseMatrix<IndexType, IndexType, ValueType> systemMatrix, const ValueType* rightSide, const ValueType* values, ValueType *residuals, StorageType& storage)
+  template<typename DimensionType, typename ValueType, typename StorageType>
+  void BuildResiduals(const SparseMatrix<DimensionType, DimensionType, ValueType> systemMatrix, const ValueType* rightSide, const ValueType* values, ValueType *residuals, StorageType& storage)
   {
+    using IndexType = typename DimensionType::IndexType;
     auto adjacentIndicesHandle = storage.template GetHandle<std::vector<IndexType>>();
     auto adjacentIndices = adjacentIndicesHandle.Get();
     auto adjacentWeightsHandle = storage.template GetHandle<std::vector<ValueType>>();
@@ -373,17 +382,18 @@ namespace almost
     }
   }
 
-  template<typename IndexType, typename ValueType, typename StorageType>
-  void BuildDenseVectorProduct(const SparseMatrix<IndexType, IndexType, ValueType> systemMatrix, const ValueType* denseVector, ValueType* denseProduct, StorageType& storage)
+  template<typename RowDimensionType, typename ColumnDimensionType, typename ValueType, typename StorageType>
+  void BuildDenseVectorProduct(const SparseMatrix<RowDimensionType, ColumnDimensionType, ValueType> systemMatrix, const ValueType* denseVector, ValueType* denseProduct, StorageType& storage)
   {
-    auto adjacentIndicesHandle = storage.template GetHandle<std::vector<IndexType>>();
+    using ColumnIndexType = typename ColumnDimensionType::IndexType;
+    auto adjacentIndicesHandle = storage.template GetHandle<std::vector<ColumnIndexType>>();
     auto adjacentIndices = adjacentIndicesHandle.Get();
     auto adjacentWeightsHandle = storage.template GetHandle<std::vector<ValueType>>();
     auto adjacentWeights = adjacentWeightsHandle.Get();
 
     for (size_t valueNumber = 0; valueNumber < systemMatrix.GetRowsCount(); valueNumber++)
     {
-      IndexType rowIndex = systemMatrix.GetRowIndex(valueNumber);
+      size_t rowIndex = systemMatrix.GetRowIndex(valueNumber);
       size_t valueIndex = rowIndex; //valueNumber
 
       size_t adjacentValuesCount = systemMatrix.GetRowTermsCount(valueNumber);
@@ -395,7 +405,7 @@ namespace almost
 
       for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
       {
-        IndexType columnIndex = adjacentIndices[adjacentValueNumber];
+        size_t columnIndex = adjacentIndices[adjacentValueNumber];
         size_t adjacentValueIndex = columnIndex;
         sum += adjacentWeights[adjacentValueNumber] * denseVector[adjacentValueIndex];
       }

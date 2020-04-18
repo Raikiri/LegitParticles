@@ -9,21 +9,21 @@
 
 namespace almost
 {
-  template<typename IndexType, typename ValueType>
+  template<typename DimensionType, typename ValueType>
   struct MultigridLayer
   {
-    using FineIndexType = IndexType;
-    SparseMatrix<IndexType, IndexType, ValueType> systemMatrix;
+    using FineDimensionType = typename DimensionType;
+    SparseMatrix<DimensionType, DimensionType, ValueType> systemMatrix;
 
     size_t valuesCount;
     std::vector<ValueType> rightSide;
     std::vector<ValueType> values;
     std::vector<ValueType> residuals;
 
-    SparseMatrix<IndexType, FineIndexType, ValueType> tmpMatrix;
+    SparseMatrix<DimensionType, FineDimensionType, ValueType> tmpMatrix;
 
-    SparseMatrix<FineIndexType, IndexType, ValueType> restrictionMatrix; //fine prev->this
-    SparseMatrix<IndexType, FineIndexType, ValueType> interpolationMatrix; //this->fine prev
+    SparseMatrix<FineDimensionType, DimensionType, ValueType> restrictionMatrix; //fine prev->this
+    SparseMatrix<DimensionType, FineDimensionType, ValueType> interpolationMatrix; //this->fine prev
 
     void Resize(size_t _valuesCount)
     {
@@ -81,7 +81,7 @@ namespace almost
     }*/
   };
 
-  template<typename IndexType, typename ValueType>
+  template<typename DimensionType, typename ValueType>
   struct AlgebraicMultigridSolver
   {
     AlgebraicMultigridSolver()
@@ -90,14 +90,14 @@ namespace almost
     }
 
     template<typename StorageType>
-    void LoadSystem(const SparseMatrix<IndexType, IndexType, ValueType>& systemMatrix, size_t valuesCount, StorageType &storage)
+    void LoadSystem(const SparseMatrix<DimensionType, DimensionType, ValueType>& systemMatrix, size_t valuesCount, StorageType &storage)
     {
       layerSolvers[0].Resize(valuesCount);
       layerSolvers[0].systemMatrix = systemMatrix;
 
       for (size_t i = 0; i < layerSolvers.size() - 1; i++)
       {
-        almost::BuildInterpolationMatrix(layerSolvers[i].systemMatrix, layerSolvers[i].valuesCount, layerSolvers[i].interpolationMatrix, storage);
+        almost::BuildInterpolationMatrix<DimensionType, DimensionType, ValueType, StorageType>(layerSolvers[i].systemMatrix, layerSolvers[i].valuesCount, layerSolvers[i].interpolationMatrix, storage);
         layerSolvers[i].restrictionMatrix.BuildFromTransposed(layerSolvers[i].interpolationMatrix, storage);
 
         layerSolvers[i + 1].Resize(layerSolvers[i].restrictionMatrix.GetRowsCount());
@@ -143,6 +143,6 @@ namespace almost
     }
 
   private:
-    std::vector<MultigridLayer<IndexType, ValueType>> layerSolvers;
+    std::vector<MultigridLayer<DimensionType, ValueType>> layerSolvers;
   };
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Utils/GlmInclude.h"
-//#define POSITION_BASED
+#define POSITION_BASED
 namespace almost
 {
   struct ParticleComponent

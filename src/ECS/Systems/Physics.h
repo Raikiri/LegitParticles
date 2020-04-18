@@ -177,7 +177,7 @@ namespace almost
   void BuildSparseJacobian(ParticleGroup particles, LinkGroup links,
     PhysicsData::JacobianMatrix& jacobianMatrix, float* positionRightSideVector, float* velocityRightSideVector, float *accelerationRightSide)
   {
-    jacobianMatrix.Clear();
+    jacobianMatrix.BuildEmpty(PhysicsData::LinkDimension{ links.size() }, PhysicsData::ParticleDimension{particles.size()});
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
     MassComponent* massComponents = particles.raw<MassComponent>();
 
@@ -205,7 +205,7 @@ namespace almost
       float deltaPos = -(glm::dot(delta, particleComponent0.pos - particleComponent1.pos) - linkComponents[linkIndex].defLength);
 
       {
-        PhysicsData::ParticleIndex columnIndices[2];
+        PhysicsData::ParticleDimension::IndexType columnIndices[2];
         columnIndices[0] = particleIndex0;
         columnIndices[1] = particleIndex1;
 
@@ -230,7 +230,7 @@ namespace almost
 
   void BuildSparseMassMatrix(ParticleGroup particles, PhysicsData::MassMatrix& massMatrix)
   {
-    massMatrix.Clear();
+    massMatrix.BuildEmpty(PhysicsData::ParticleDimension{particles.size()}, PhysicsData::ParticleDimension{ particles.size() });
     size_t particlesCount = particles.size();
     MassComponent* massComponents = particles.raw<MassComponent>();
     for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
@@ -243,7 +243,7 @@ namespace almost
 
   void BuildSparseVectorFromDense(float* values, size_t count, PhysicsData::RightSideMatrix& sparseVector)
   {
-    sparseVector.Clear();
+    sparseVector.BuildEmpty(PhysicsData::RightSideMatrix::RowDimension{count}, PhysicsData::OneDimension());
     for (size_t rowIndex = 0; rowIndex < count; rowIndex++)
     {
       char columnIndex = 0;
@@ -254,7 +254,7 @@ namespace almost
 
   void GaussSolveSparseSystem(const PhysicsData::SystemMatrix& systemMatrix, const float* rightSide, float* lambdas, size_t iterationsCount)
   {
-    std::vector<PhysicsData::LinkIndex> adjacentLinkIndices;
+    std::vector<PhysicsData::ParticleDimension::IndexType> adjacentLinkIndices;
     std::vector<float> adjacentLinkWeights;
     size_t linksCount = systemMatrix.GetRowsCount();
     for (size_t iterationIndex = 0; iterationIndex < iterationsCount; iterationIndex++)
@@ -335,16 +335,28 @@ namespace almost
     }
   }
 
-  using ElemType0 = almost::SparseMatrix<size_t, size_t, glm::vec2>::Element;
+  /*using ElemType0 = almost::SparseMatrix<size_t, size_t, glm::vec2>::Element;
   using ElemType1 = almost::SparseMatrix<size_t, size_t, float>::Element;
-  using ElemType2 = almost::SparseMatrix<size_t, char, glm::vec2>::Element;
-  using StorageType = almost::StackStorage<PhysicsData::SystemMatrix, PhysicsData::JacobianMatrix, PhysicsData::DeltaMatrix, PhysicsData::RightSideMatrix, std::vector<float>, std::vector<size_t>, std::vector<glm::vec2>, std::vector<ElemType0>, std::vector<ElemType1>, std::vector<ElemType2>>;
+  using ElemType2 = almost::SparseMatrix<size_t, char, glm::vec2>::Element;*/
+  using StorageType = almost::StackStorage<
+    PhysicsData::SystemMatrix,
+    PhysicsData::MassMatrix,
+    PhysicsData::JacobianMatrix,
+    PhysicsData::JacobianTransposedMatrix,
+    PhysicsData::DeltaMatrix,
+    PhysicsData::RightSideMatrix,
+    std::vector<PhysicsData::DeltaMatrix::Element>,
+    std::vector<PhysicsData::SystemMatrix::Element>,
+    std::vector<PhysicsData::JacobianTransposedMatrix::Element>,
+    std::vector<float>,
+    std::vector<size_t>,
+    std::vector<glm::vec2> >;
   StorageType stackStorage;
 
   PhysicsData::JacobianTransposedMatrix massJacobianTransposed;
   PhysicsData::SystemMatrix systemMatrix;
 
-  almost::AlgebraicMultigridSolver<PhysicsData::LinkIndex, float> multigridSolver;
+  almost::AlgebraicMultigridSolver<PhysicsData::LinkDimension, float> multigridSolver;
 
   struct DotProduct
   {
@@ -401,9 +413,13 @@ namespace almost
         auto physicsTask = profiler.StartScopedTask("[Physics] System", legit::Colors::sunFlower);
 
         BuildSparseMassMatrix(particles, massMatrix);
+        
         jacobianTransposedMatrix.BuildFromTransposed(jacobianMatrix, stackStorage);
         massJacobianTransposed.BuildFromSparseProduct<VectorScalarProduct>(massMatrix, jacobianTransposedMatrix, stackStorage);
         systemMatrix.BuildFromSparseProduct<DotProduct>(jacobianMatrix, massJacobianTransposed, stackStorage);
+        /*massJacobianTransposed.BuildFromDenseProduct<VectorScalarProduct>(massMatrix, jacobianMatrix, stackStorage);
+        systemMatrix.BuildFromSparseProduct<DotProduct>(jacobianMatrix, massJacobianTransposed, stackStorage);*/
+        int p = 1;
       }
     }
 
@@ -485,6 +501,8 @@ namespace almost
       }
     }
   }
+
+
 
   void ProcessPhysics(
     ParticleGroup particles,

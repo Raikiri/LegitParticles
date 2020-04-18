@@ -7,15 +7,28 @@ namespace almost
 {
   struct PhysicsData
   {
-    using LinkIndex = size_t;
-    using ParticleIndex = size_t;
+    struct ParticleDimension
+    {
+      using IndexType = size_t;
+      size_t size;
+    };
+    struct LinkDimension
+    {
+      using IndexType = size_t;
+      size_t size;
+    };
+    struct OneDimension
+    {
+      using IndexType = char;
+      const static size_t size = 1;
+    };
 
-    using JacobianMatrix = almost::SparseMatrix<LinkIndex, ParticleIndex, glm::vec2>;
-    using JacobianTransposedMatrix = almost::SparseMatrix<ParticleIndex, LinkIndex, glm::vec2>;
-    using MassMatrix = almost::SparseMatrix<ParticleIndex, ParticleIndex, float>;
-    using DeltaMatrix = almost::SparseMatrix<ParticleIndex, char, glm::vec2>;
+    using JacobianMatrix = almost::SparseMatrix<LinkDimension, ParticleDimension, glm::vec2>;
+    using JacobianTransposedMatrix = almost::SparseMatrix<ParticleDimension, LinkDimension, glm::vec2>;
+    using MassMatrix = almost::SparseMatrix<ParticleDimension, ParticleDimension, float>;
+    using DeltaMatrix = almost::SparseMatrix<ParticleDimension, OneDimension, glm::vec2>;
 
-    using SystemMatrix = almost::SparseMatrix<LinkIndex, LinkIndex, float>;
-    using RightSideMatrix = almost::SparseMatrix<LinkIndex, char, float>;
+    using SystemMatrix = almost::SparseMatrix<LinkDimension, LinkDimension, float>;
+    using RightSideMatrix = almost::SparseMatrix<LinkDimension, OneDimension, float>;
   };
 }
