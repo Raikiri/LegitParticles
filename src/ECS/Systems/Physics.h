@@ -435,27 +435,35 @@ namespace almost
       ApplyAccelerationDeltas(particles, accelerationDeltaMatrix);*/
 
       #if !defined(POSITION_BASED)
-        velocityLambdas.resize(links.size());
+        auto velocityLambdasSparseHandle = stackStorage.GetHandle<PhysicsData::RightSideMatrix>();
+        auto velocityDeltaMatrixHandle = stackStorage.GetHandle<PhysicsData::DeltaMatrix>();
+
+        auto& velocityLambdasSparse = velocityLambdasSparseHandle.Get();
+        auto& velocityDeltaMatrix = velocityDeltaMatrixHandle.Get();
         if (0)
         {
+          auto velocityLambdasHandle = stackStorage.GetHandle<std::vector<float>>();
+          auto &velocityLambdas = velocityLambdasHandle.Get();
+          velocityLambdas.resize(links.size());
+
           GaussSolveSparseSystem(systemMatrix, velocityRightSide.data(), velocityLambdas.data(), iterationsCount);
+          BuildSparseVectorFromDense(velocityLambdas.data(), velocityLambdas.size(), velocityLambdasSparse);
         }
         else
         {
           multigridSolver.Solve(velocityRightSide.data(), iterationsCount, stackStorage);
-
-          std::copy_n(multigridSolver.GetValues(), links.size(), velocityLambdas.data());
+          BuildSparseVectorFromDense(multigridSolver.GetValues(), links.size(), velocityLambdasSparse);
         }
-        BuildSparseVectorFromDense(velocityLambdas.data(), velocityLambdas.size(), velocityLambdasSparse);
-        velocityDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, velocityLambdasSparse, stackStorage);
+
+        velocityDeltaMatrix.BuildFromSparseProduct<VectorScalarProduct>(massJacobianTransposed, velocityLambdasSparse, stackStorage);
         ApplyVelocityDeltas(particles, velocityDeltaMatrix);
       #endif
 
       {
         auto positionLambdasSparseHandle = stackStorage.GetHandle<PhysicsData::RightSideMatrix>();
-        auto &positionLambdasSparse = positionLambdasSparseHandle.Get();
-
         auto positionDeltaMatrixHandle = stackStorage.GetHandle<PhysicsData::DeltaMatrix>();
+
+        auto& positionLambdasSparse = positionLambdasSparseHandle.Get();
         auto& positionDeltaMatrix = positionDeltaMatrixHandle.Get();
         if (0)
         {
