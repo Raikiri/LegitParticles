@@ -209,7 +209,7 @@ namespace almost
         columnIndices[0] = particleIndex0;
         columnIndices[1] = particleIndex1;
 
-        Vector2f jacobianValues[2];
+        glm::vec2 jacobianValues[2];
         jacobianValues[0] = {  delta };
         jacobianValues[1] = { -delta };
         jacobianMatrix.AddRow(linkIndex, columnIndices, jacobianValues, 2);
@@ -291,10 +291,10 @@ namespace almost
     {
       assert(deltaMatrix.GetRowTermsCount(rowNumber) == 1);
       char columnIndex;
-      Vector2f delta;
+      glm::vec2 delta;
       deltaMatrix.GetRowTerms(rowNumber, &columnIndex, &delta);
       assert(columnIndex == 0);
-      particleComponents[rowNumber].acceleration += delta.vec;
+      particleComponents[rowNumber].acceleration += delta;
     }
   }
   void ApplyVelocityDeltas(ParticleGroup particles, const PhysicsData::DeltaMatrix& deltaMatrix)
@@ -307,13 +307,13 @@ namespace almost
     {
       assert(deltaMatrix.GetRowTermsCount(rowNumber) == 1);
       char columnIndex;
-      Vector2f delta;
+      glm::vec2 delta;
       deltaMatrix.GetRowTerms(rowNumber, &columnIndex, &delta);
       assert(columnIndex == 0);
       #if defined(POSITION_BASED)
         assert(0);
       #else
-        particleComponents[rowNumber].velocity += delta.vec;
+        particleComponents[rowNumber].velocity += delta;
       #endif
     }
   }
@@ -328,34 +328,17 @@ namespace almost
     {
       assert(deltaMatrix.GetRowTermsCount(rowNumber) == 1);
       char columnIndex;
-      Vector2f delta;
+      glm::vec2 delta;
       deltaMatrix.GetRowTerms(rowNumber, &columnIndex, &delta);
       assert(columnIndex == 0);
-      particleComponents[rowNumber].pos += delta.vec;
+      particleComponents[rowNumber].pos += delta;
     }
   }
-  Vector2f operator *(Vector2f left, float right)
-  {
-    return Vector2f{ left.vec * right };
-  }
-  Vector2f operator *(float left, Vector2f right)
-  {
-    return Vector2f{ right.vec * left };
-  }
-  float operator *(Vector2f left, Vector2f right)
-  {
-    return glm::dot(left.vec, right.vec);
-  }
-  Vector2f& operator += (Vector2f &left, Vector2f right)
-  {
-    left.vec += right.vec;
-    return left;
-  }
 
-  using ElemType0 = almost::SparseMatrix<size_t, size_t, Vector2f>::Element;
+  using ElemType0 = almost::SparseMatrix<size_t, size_t, glm::vec2>::Element;
   using ElemType1 = almost::SparseMatrix<size_t, size_t, float>::Element;
-  using ElemType2 = almost::SparseMatrix<size_t, char, Vector2f>::Element;
-  using StorageType = almost::StackStorage<PhysicsData::SystemMatrix, PhysicsData::JacobianMatrix, PhysicsData::DeltaMatrix, PhysicsData::RightSideMatrix, std::vector<float>, std::vector<size_t>, std::vector<Vector2f>, std::vector<ElemType0>, std::vector<ElemType1>, std::vector<ElemType2>>;
+  using ElemType2 = almost::SparseMatrix<size_t, char, glm::vec2>::Element;
+  using StorageType = almost::StackStorage<PhysicsData::SystemMatrix, PhysicsData::JacobianMatrix, PhysicsData::DeltaMatrix, PhysicsData::RightSideMatrix, std::vector<float>, std::vector<size_t>, std::vector<glm::vec2>, std::vector<ElemType0>, std::vector<ElemType1>, std::vector<ElemType2>>;
   StorageType stackStorage;
 
   PhysicsData::JacobianTransposedMatrix massJacobianTransposed;
@@ -366,35 +349,31 @@ namespace almost
   struct DotProduct
   {
     using ResultType = float;
-    static ResultType Get(Vector2f val0, Vector2f val1)
+    static ResultType Get(glm::vec2 val0, glm::vec2 val1)
     {
-      return glm::dot(val0.vec, val1.vec);
+      return glm::dot(val0, val1);
     }
   };
 
   struct VectorScalarProduct
   {
-    using ResultType = Vector2f;
-    static ResultType Get(Vector2f val0, float val1)
+    using ResultType = glm::vec2;
+    static ResultType Get(glm::vec2 val0, float val1)
     {
-      Vector2f res;
-      res.vec = val0.vec * val1;
-      return res;
+      return val0 * val1;
     }
-    static ResultType Get(float val0, Vector2f val1)
+    static ResultType Get(float val0, glm::vec2 val1)
     {
-      Vector2f res;
-      res.vec = val1.vec * val0;
-      return res;
+      return val1 * val0;
     }
   };
   void SolveLinksMultigrid(ParticleGroup particles, LinkGroup links, legit::CpuProfiler &profiler)
   {
     auto positionRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
-    auto positionRightSide = positionRightSideHandle.Get();
     auto velocityRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
-    auto velocityRightSide = velocityRightSideHandle.Get();
     auto accelerationRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
+    auto positionRightSide = positionRightSideHandle.Get();
+    auto velocityRightSide = velocityRightSideHandle.Get();
     auto accelerationRightSide = accelerationRightSideHandle.Get();
 
     positionRightSide.resize(links.size());
@@ -498,8 +477,6 @@ namespace almost
       }
     }
   }
-
-
 
   void ProcessPhysics(
     ParticleGroup particles,
