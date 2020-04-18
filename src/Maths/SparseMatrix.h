@@ -4,6 +4,15 @@
 #include <vector>
 namespace almost
 {
+  template<typename T>
+  struct BasicProduct
+  {
+    using ResultType = T;
+    static T Get(const T& val0, const T& val1)
+    {
+      return val0 * val1;
+    }
+  };
   template<typename RowIndexTypeT, typename ColumnIndexTypeT, typename ValueTypeT>
   struct SparseMatrix
   {
@@ -180,8 +189,8 @@ namespace almost
       return BuildFromSortedElements(elements.Get().data(), elements.Get().size());
     }
 
-    template<typename CommonIndexType, typename StorageType>
-    SelfType &BuildFromDenseProduct(const SparseMatrix<RowIndexType, CommonIndexType, ValueType>& matrix0, const SparseMatrix<ColumnIndexType, CommonIndexType, ValueType> &matrix1Transposed, StorageType &storage)
+    template<typename Product = BasicProduct<ValueType>, typename ValueType0, typename ValueType1, typename CommonIndexType, typename StorageType>
+    SelfType &BuildFromDenseProduct(const SparseMatrix<RowIndexType, CommonIndexType, ValueType0>& matrix0, const SparseMatrix<ColumnIndexType, CommonIndexType, ValueType1> &matrix1Transposed, StorageType &storage)
     {
       Clear();
       auto elements = storage.template GetHandle<std::vector<Element>>();
@@ -215,7 +224,7 @@ namespace almost
               termNumber1++;
             else
             {
-              newElement.value += term0.value * term1.value;
+              newElement.value += Product::Get(term0.value, term1.value);
               termNumber0++;
               termNumber1++;
             }
@@ -228,7 +237,7 @@ namespace almost
       return BuildFromSortedElements(elements.Get().data(), elements.Get().size());
     }
 
-    template<typename CommonIndexType, typename ValueType0, typename ValueType1, typename StorageType>
+    template<typename Product = BasicProduct<ValueType>, typename CommonIndexType, typename ValueType0, typename ValueType1, typename StorageType>
     SelfType &BuildFromSparseProduct(const SparseMatrix<RowIndexType, CommonIndexType, ValueType0>& matrix0, const SparseMatrix<CommonIndexType, ColumnIndexType, ValueType1>& matrix1, StorageType& storage)
     {
       Clear();
@@ -254,7 +263,7 @@ namespace almost
             Element newElement;
             newElement.rowIndex = row.rowIndex;
             newElement.columnIndex = otherColumnIndex;
-            newElement.value = term.value * otherTerm.value;
+            newElement.value = Product::Get(term.value, otherTerm.value);
             //if (newElement.value != ProductType(0))
             elements.Get().push_back(newElement);
           }

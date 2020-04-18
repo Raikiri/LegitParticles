@@ -363,6 +363,31 @@ namespace almost
 
   almost::AlgebraicMultigridSolver<PhysicsData::LinkIndex, float> multigridSolver;
 
+  struct DotProduct
+  {
+    using ResultType = float;
+    static ResultType Get(Vector2f val0, Vector2f val1)
+    {
+      return glm::dot(val0.vec, val1.vec);
+    }
+  };
+
+  struct VectorScalarProduct
+  {
+    using ResultType = Vector2f;
+    static ResultType Get(Vector2f val0, float val1)
+    {
+      Vector2f res;
+      res.vec = val0.vec * val1;
+      return res;
+    }
+    static ResultType Get(float val0, Vector2f val1)
+    {
+      Vector2f res;
+      res.vec = val1.vec * val0;
+      return res;
+    }
+  };
   void SolveLinksMultigrid(ParticleGroup particles, LinkGroup links, legit::CpuProfiler &profiler)
   {
     auto positionRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
@@ -398,8 +423,8 @@ namespace almost
 
         BuildSparseMassMatrix(particles, massMatrix);
         jacobianTransposedMatrix.BuildFromTransposed(jacobianMatrix, stackStorage);
-        massJacobianTransposed.BuildFromSparseProduct(massMatrix, jacobianTransposedMatrix, stackStorage);
-        systemMatrix.BuildFromSparseProduct(jacobianMatrix, massJacobianTransposed, stackStorage);
+        massJacobianTransposed.BuildFromSparseProduct<VectorScalarProduct>(massMatrix, jacobianTransposedMatrix, stackStorage);
+        systemMatrix.BuildFromSparseProduct<DotProduct>(jacobianMatrix, massJacobianTransposed, stackStorage);
       }
     }
 
@@ -468,11 +493,13 @@ namespace almost
           BuildSparseVectorFromDense(multigridSolver.GetValues(), links.size(), positionLambdasSparse);
         }
 
-        positionDeltaMatrix.BuildFromSparseProduct(massJacobianTransposed, positionLambdasSparse, stackStorage);
+        positionDeltaMatrix.BuildFromSparseProduct<VectorScalarProduct>(massJacobianTransposed, positionLambdasSparse, stackStorage);
         ApplyPositionDeltas(particles, positionDeltaMatrix);
       }
     }
   }
+
+
 
   void ProcessPhysics(
     ParticleGroup particles,
