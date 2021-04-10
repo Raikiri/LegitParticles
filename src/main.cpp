@@ -85,7 +85,7 @@ void CreateClothPhysicsMesh(entt::registry& reg)
   glm::vec2 minPoint = glm::vec2(-200.0f, -200.0f);
   glm::vec2 maxPoint = glm::vec2(200.0f, 200.0f);
 
-  glm::ivec2 count = { 20, 20};
+  glm::ivec2 count = { 40, 40};
   glm::ivec2 index;
   std::vector<entt::entity> particleEntities;
   auto c = reg.view<almost::ParticleComponent, almost::ParticleIndexComponent>();

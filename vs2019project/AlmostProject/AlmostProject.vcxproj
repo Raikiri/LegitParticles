@@ -23,6 +23,7 @@
     <ProjectGuid>{A92804A4-B31F-47AF-A9C5-48E48630DED5}</ProjectGuid>
     <RootNamespace>AlmostProject</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>AlmostProject</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -72,8 +73,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\..\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)\..\build\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>d:\Portable soft\VulkanSDK\1.1.121.2\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>d:\Portable soft\VulkanSDK\1.1.121.2\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.162.0\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.2.162.0\Lib;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SourcePath)</SourcePath>
     <TargetName>AlmostEngineDebug</TargetName>
   </PropertyGroup>
