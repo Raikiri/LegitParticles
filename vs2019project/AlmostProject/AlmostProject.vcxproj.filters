@@ -37,6 +37,9 @@
     <Filter Include="ECS\Context">
       <UniqueIdentifier>{165a934a-4635-405a-a811-2325cb02304b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ECS\Scenes">
+      <UniqueIdentifier>{902dfab4-ccb8-4df7-9b67-5bdf9ca93c54}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cfg.cpp">
@@ -317,6 +320,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Maths\StackStorage.h">
       <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Scenes\ParticlesScene.h">
+      <Filter>ECS\Scenes</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

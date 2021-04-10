@@ -197,6 +197,7 @@
     <ClInclude Include="..\..\src\ECS\Context\PhysicsData.h" />
     <ClInclude Include="..\..\src\ECS\Context\RendererData.h" />
     <ClInclude Include="..\..\src\ECS\Context\WindowData.h" />
+    <ClInclude Include="..\..\src\ECS\Scenes\ParticlesScene.h" />
     <ClInclude Include="..\..\src\ECS\Systems\Camera.h" />
     <ClInclude Include="..\..\src\ECS\Systems\FullscreenRenderer.h" />
     <ClInclude Include="..\..\src\ECS\Systems\Input.h" />
