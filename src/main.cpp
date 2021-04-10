@@ -23,7 +23,7 @@
 #include "ECS\Components\ParticleComponent.h"
 #include "ECS\Components\LinkComponent.h"
 
-entt::entity CreateParticle(entt::registry &reg, glm::vec2 pos, bool isTopRow)
+entt::entity CreateParticle(entt::registry &reg, glm::vec2 pos, bool isFixed, bool isDraggable)
 {
   entt::entity particleEntity = reg.create();
 
@@ -43,12 +43,13 @@ entt::entity CreateParticle(entt::registry &reg, glm::vec2 pos, bool isTopRow)
 
 
   almost::MassComponent massComponent;
-  massComponent.usesGravity = !isTopRow;
-  massComponent.invMass = isTopRow ? 0.0f : 1.0f;
+  massComponent.usesGravity = !isFixed;
+  massComponent.invMass = isFixed ? 0.0f : 1000.0f;
   reg.emplace<almost::MassComponent>(particleEntity, massComponent);
 
   almost::DefPosComponent defPosComponent;
   defPosComponent.defPos = pos;
+  defPosComponent.isDraggable = isDraggable;
   reg.emplace<almost::DefPosComponent>(particleEntity, defPosComponent);
 
   return particleEntity;
@@ -72,13 +73,19 @@ entt::entity CreateLink(entt::registry& reg, entt::entity particle0, entt::entit
   return linkEntity;
 }
 
+void CreateGround(entt::registry& reg)
+{
+  reg.group<almost::ParticleComponent, almost::ParticleIndexComponent>();
+
+  entt::entity groundEntity = CreateParticle(reg, glm::vec2(0.0f, 0.0f), true, false);
+}
 void CreateClothPhysicsMesh(entt::registry& reg)
 {
   reg.group<almost::ParticleComponent, almost::ParticleIndexComponent>();
   glm::vec2 minPoint = glm::vec2(-200.0f, -200.0f);
   glm::vec2 maxPoint = glm::vec2(200.0f, 200.0f);
 
-  glm::ivec2 count = { 300, 30 };
+  glm::ivec2 count = { 20, 20};
   glm::ivec2 index;
   std::vector<entt::entity> particleEntities;
   auto c = reg.view<almost::ParticleComponent, almost::ParticleIndexComponent>();
@@ -87,7 +94,8 @@ void CreateClothPhysicsMesh(entt::registry& reg)
   {
     for (index.x = 0; index.x < count.x; index.x++)
     {
-      particleEntities[index.x + index.y * count.x] = CreateParticle(reg, glm::mix(minPoint, maxPoint, glm::vec2(index) / (glm::vec2(count) - glm::vec2(0))), index.y == count.y - 1);
+      bool isTopRow = index.y == count.y - 1;
+      particleEntities[index.x + index.y * count.x] = CreateParticle(reg, glm::mix(minPoint, maxPoint, glm::vec2(index) / (glm::vec2(count) - glm::vec2(0)))/* + glm::vec2(rand() % 5, rand() % 5)*/, isTopRow, isTopRow);
     }
   }
 
@@ -99,12 +107,12 @@ void CreateClothPhysicsMesh(entt::registry& reg)
     for (index.x = 0; index.x < count.x; index.x++)
     {
       entt::entity currEntity = particleEntities[index.x + index.y * count.x];
-      //if (index.x + 1 < count.x && index.y + 1 < count.y)
-      //{
-      //  entt::entity nextEntity = particleEntities[index.x + 1 + index.y * count.x];
+      if (index.x + 1 < count.x && index.y + 1 < count.y)
+      {
+        entt::entity nextEntity = particleEntities[index.x + 1 + index.y * count.x];
 
-      //  linkEntities.push_back(CreateLink(reg, currEntity, nextEntity));
-      //}
+        linkEntities.push_back(CreateLink(reg, currEntity, nextEntity));
+      }
       if (index.y + 1 < count.y)
       {
         entt::entity nextEntity = particleEntities[index.x + (index.y + 1) * count.x];
@@ -127,6 +135,7 @@ int main(int argsCount, char **args)
   auto fullscreenRendererHandle = ScopedCtx<almost::FullscreenRendererData>(reg, almost::InitFullscreenRendererData(reg.ctx<almost::RendererData>()));
   almost::MapMeshRenderer(reg.ctx<almost::MeshRendererData>());
 
+  CreateGround(reg);
   CreateClothPhysicsMesh(reg);
 
   while (!reg.ctx<almost::InputData>().isWindowClosed)

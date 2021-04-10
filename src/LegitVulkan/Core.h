@@ -15,12 +15,13 @@ namespace legit
       std::vector<const char*> validationLayers;
       if (enableDebugging)
       {
-        validationLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+        validationLayers.push_back("VK_LAYER_KHRONOS_validation");
         resIntanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
       }
 
       this->instance = CreateInstance(resIntanceExtensions, validationLayers);
-      loader = vk::DispatchLoaderDynamic(instance.get());
+      //loader = vk::DispatchLoaderDynamic();
+      loader = vk::DispatchLoaderDynamic(instance.get(), vkGetInstanceProcAddr);
 
       auto prop = vk::enumerateInstanceLayerProperties();
       
@@ -28,12 +29,12 @@ namespace legit
         this->debugUtilsMessenger = CreateDebugUtilsMessenger(instance.get(), DebugMessageCallback, loader);
       this->physicalDevice = FindPhysicalDevice(instance.get());
       
-      std::cout << "Supported extensions:\n";
+      /*std::cout << "Supported extensions:\n";
       auto extensions = physicalDevice.enumerateDeviceExtensionProperties();
       for (auto extension : extensions)
       {
         std::cout << "  " << extension.extensionName << "\n";
-      }
+      }*/
 
       if(compatibleWindowDesc)
       {
@@ -77,7 +78,7 @@ namespace legit
         .setObjectHandle(uint64_t(T::CType(objHandle)))
         .setObjectType(objHandle.objectType)
         .setPObjectName(name.c_str());
-      logicalDevice->setDebugUtilsObjectNameEXT(&nameInfo, loader);
+      auto res = logicalDevice->setDebugUtilsObjectNameEXT(&nameInfo, loader);
     }
     
     void SetDebugName(legit::ImageData *imageData, std::string name)
@@ -125,7 +126,7 @@ namespace legit
     }
     void WaitForFence(vk::Fence fence)
     {
-      logicalDevice->waitForFences({ fence }, true, std::numeric_limits<uint64_t>::max());
+      auto res = logicalDevice->waitForFences({ fence }, true, std::numeric_limits<uint64_t>::max());
     }
     void ResetFence(vk::Fence fence)
     {
@@ -179,7 +180,7 @@ namespace legit
     static vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> CreateDebugUtilsMessenger(vk::Instance instance, PFN_vkDebugUtilsMessengerCallbackEXT debugCallback, vk::DispatchLoaderDynamic &loader)
     {
       auto messengerCreateInfo = vk::DebugUtilsMessengerCreateInfoEXT()
-        .setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError/* | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo*/)
+        .setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError/* | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo*/)
         .setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation)
         .setPfnUserCallback(debugCallback)
         .setPUserData(nullptr); // Optional

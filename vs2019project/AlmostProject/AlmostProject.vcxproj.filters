@@ -88,6 +88,9 @@
       <Filter>imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\ECS\Systems\Physics.cpp">
+      <Filter>ECS\Systems</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\dependencies\spirv-cross\GLSL.std.450.h">
@@ -308,6 +311,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Maths\SparseMatrixUtils.h">
       <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Utils\GroupArg.h">
+      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Maths\StackStorage.h">
       <Filter>Maths</Filter>

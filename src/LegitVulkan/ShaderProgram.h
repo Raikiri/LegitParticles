@@ -1,6 +1,7 @@
 #include <map>
 #include <set>
 #include "spirv_cross.hpp"
+#include <algorithm>
 
 namespace legit
 {

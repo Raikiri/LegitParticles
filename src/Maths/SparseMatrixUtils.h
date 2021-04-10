@@ -20,60 +20,44 @@ namespace almost
     }
   }
 
-  template<typename DimensionType, typename ValueType, typename StorageType>
-  static void BuildSparseConnectivityMatrix(const SparseMatrix<DimensionType, DimensionType, ValueType>& srcMatrix, ValueType* srcDiag, SparseMatrix<DimensionType, DimensionType, ValueType>& dstConnectivityMatrix, StorageType& tmpStorage)
+  template<typename Space, typename DimensionType, typename StorageType>
+  static void BuildSparseConnectivityMatrix(const SparseMatrix<DimensionType, DimensionType, typename Space::ValueType0>& srcMatrix, typename Space::ValueType0* srcDiag, SparseMatrix<DimensionType, DimensionType, typename Space::ScalarType>& dstConnectivityMatrix, StorageType& tmpStorage)
   {
     using IndexType = typename DimensionType::IndexType;
     //BuildSparseDiag(srcMatrix, dstDiagCoeff);
     dstConnectivityMatrix.BuildEmpty(srcMatrix.rowDimension, srcMatrix.columnDimension);
 
-    //std::vector<IndexType> connectedIndices;
-    //std::vector<float> connectedWeights;
-    auto adjacentIndicesHandle = tmpStorage.template GetHandle < std::vector<IndexType> >();
-    auto adjacentIndices = adjacentIndicesHandle.Get();
-    auto adjacentWeightsHandle = tmpStorage.template GetHandle < std::vector<ValueType> >();
-    auto adjacentWeights = adjacentWeightsHandle.Get();
-    auto adjacentRadiiHandle = tmpStorage.template GetHandle < std::vector<ValueType> >();
+    auto adjacentRadiiHandle = tmpStorage.template GetHandle < std::vector<typename Space::ScalarType> >();
     auto adjacentRadii = adjacentRadiiHandle.Get();
-
-    auto connectedIndicesHandle = tmpStorage.template GetHandle < std::vector<IndexType> >();
-    auto connectedIndices = connectedIndicesHandle.Get();
-    auto connectedWeightsHandle = tmpStorage.template GetHandle < std::vector<ValueType> >();
-    auto connectedWeights = connectedWeightsHandle.Get();
 
     for (size_t valueNumber = 0; valueNumber < srcMatrix.GetRowsCount(); valueNumber++)
     {
       IndexType rowIndex = srcMatrix.GetRowIndex(valueNumber);
 
       size_t adjacentValuesCount = srcMatrix.GetRowTermsCount(valueNumber);
-      adjacentIndices.resize(adjacentValuesCount);
-      adjacentWeights.resize(adjacentValuesCount);
       adjacentRadii.resize(adjacentValuesCount);
-      srcMatrix.GetRowTerms(valueNumber, adjacentIndices.data(), adjacentWeights.data());
-      ValueType maxRadius = 0.0f;
+      const auto* rowTerms = srcMatrix.GetRowTerms(valueNumber);
+      float maxRadius = 0.0f;
       for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
       {
-        IndexType columnIndex = adjacentIndices[adjacentValueNumber];
-        ValueType coeff = abs(adjacentWeights[adjacentValueNumber]);
-        assert(srcDiag[rowIndex] > 0.0f);
-        assert(srcDiag[columnIndex] > 0.0f);
-        ValueType radius = coeff / (sqrt(srcDiag[rowIndex]) * sqrt(srcDiag[columnIndex]));
+        IndexType columnIndex = rowTerms[adjacentValueNumber].columnIndex;
+        //assert(srcDiag[rowIndex] > 0.0f);
+        //assert(srcDiag[columnIndex] > 0.0f);
+        float radius = Space::SpectralRadius(rowTerms[adjacentValueNumber].value, srcDiag[rowIndex], srcDiag[columnIndex]);
         adjacentRadii[adjacentValueNumber] = radius;
         if (columnIndex != rowIndex)
           maxRadius = std::max(maxRadius, radius);
       }
 
-      connectedWeights.clear();
-      connectedIndices.clear();
+      dstConnectivityMatrix.AppendRow(rowIndex);
       for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
       {
-        if (adjacentRadii[adjacentValueNumber] > maxRadius * 0.5f)
+        IndexType columnIndex = rowTerms[adjacentValueNumber].columnIndex;
+        if (adjacentRadii[adjacentValueNumber] > maxRadius * 0.5 || columnIndex == rowIndex)
         {
-          connectedWeights.push_back(1.0f);
-          connectedIndices.push_back(adjacentIndices[adjacentValueNumber]);
+          dstConnectivityMatrix.AppendTerm(rowTerms[adjacentValueNumber].columnIndex, 1.0f);
         }
       }
-      dstConnectivityMatrix.AddRow(rowIndex, connectedIndices.data(), connectedWeights.data(), connectedIndices.size());
     }
     assert(dstConnectivityMatrix.CheckSortedIndices());
     //interpolationMatrix = coarseSolver.restrictionMatrix.GetTransposed();
@@ -153,21 +137,17 @@ namespace almost
   }
 
 
-  template<typename FineDimensionType, typename CoarseDimensionType, typename ValueType, typename StorageType>
+  template<typename FineDimensionType, typename CoarseDimensionType, typename ScalarType, typename StorageType>
   static void BuildTentativeInterpolationMatrix(
-    const SparseMatrix<FineDimensionType, FineDimensionType, ValueType>& srcFineConnectivityMatrix,
+    const SparseMatrix<FineDimensionType, FineDimensionType, ScalarType>& srcFineConnectivityMatrix,
     typename FineDimensionType::IndexType valuesCount,
-    SparseMatrix<CoarseDimensionType, FineDimensionType, ValueType>& dstInterpolationMatrix,
+    SparseMatrix<CoarseDimensionType, FineDimensionType, ScalarType>& dstInterpolationMatrix,
     StorageType& storage)
   {
     using CoarseIndexType = typename CoarseDimensionType::IndexType;
     using FineIndexType = typename FineDimensionType::IndexType;
     auto aggregationIndicesHandle = storage.template GetHandle<std::vector<CoarseIndexType>>();
     auto aggregationIndices = aggregationIndicesHandle.Get();
-    auto adjacentIndicesHandle = storage.template GetHandle<std::vector<FineIndexType>>();
-    auto adjacentIndices = adjacentIndicesHandle.Get();
-    auto adjacentWeightsHandle = storage.template GetHandle<std::vector<ValueType>>();
-    auto adjacentWeights = adjacentWeightsHandle.Get();
 
     aggregationIndices.resize(valuesCount);
 
@@ -177,13 +157,11 @@ namespace almost
     {
       FineIndexType valueIndex = srcFineConnectivityMatrix.GetRowIndex(valueNumber);
       size_t adjacentValuesCount = srcFineConnectivityMatrix.GetRowTermsCount(valueNumber);
-      adjacentIndices.resize(adjacentValuesCount);
-      adjacentWeights.resize(adjacentValuesCount);
-      srcFineConnectivityMatrix.GetRowTerms(valueNumber, adjacentIndices.data(), adjacentWeights.data());
+      const auto *rowTerms = srcFineConnectivityMatrix.GetRowTerms(valueNumber);
       bool isUnassigned = true;
       for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
       {
-        FineIndexType columnIndex = adjacentIndices[adjacentValueNumber];
+        FineIndexType columnIndex = rowTerms[adjacentValueNumber].columnIndex;
         if (aggregationIndices[columnIndex] != CoarseIndexType(-1))
           isUnassigned = false;
       }
@@ -191,7 +169,7 @@ namespace almost
       {
         for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
         {
-          FineIndexType columnIndex = adjacentIndices[adjacentValueNumber];
+          FineIndexType columnIndex = rowTerms[adjacentValueNumber].columnIndex;
           aggregationIndices[columnIndex] = aggregatesCount;
         }
         aggregatesCount++;
@@ -205,13 +183,11 @@ namespace almost
         continue;
 
       size_t adjacentValuesCount = srcFineConnectivityMatrix.GetRowTermsCount(valueNumber);
-      adjacentIndices.resize(adjacentValuesCount);
-      adjacentWeights.resize(adjacentValuesCount);
-      srcFineConnectivityMatrix.GetRowTerms(valueNumber, adjacentIndices.data(), adjacentWeights.data());
+      const auto *rowTerms = srcFineConnectivityMatrix.GetRowTerms(valueNumber);
       CoarseIndexType dstAggregationIndex = CoarseIndexType(-1);
       for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
       {
-        FineIndexType columnIndex = adjacentIndices[adjacentValueNumber];
+        FineIndexType columnIndex = rowTerms[adjacentValueNumber].columnIndex;
         if (aggregationIndices[columnIndex] != CoarseIndexType(-1))
           dstAggregationIndex = aggregationIndices[columnIndex];
       }
@@ -236,25 +212,26 @@ namespace almost
       FineIndexType rowIndex = valueIndex;
       CoarseIndexType columnIndex = aggregationIndices[valueIndex];
       assert(columnIndex != CoarseIndexType(-1));
-      ValueType coeff = ValueType(1) / sqrt(ValueType(aggregateSizes[columnIndex]));
-      dstInterpolationMatrix.AddRow(rowIndex, &columnIndex, &coeff, 1);
+      ScalarType coeff = ScalarType(1) / sqrt(ScalarType(aggregateSizes[columnIndex]));
+      dstInterpolationMatrix.AppendRow(rowIndex);
+      dstInterpolationMatrix.AppendTerm(columnIndex, coeff);
     }
     assert(dstInterpolationMatrix.CheckSortedIndices());
   }
 
-  template<typename FineDimensionType, typename CoarseDimensionType, typename ValueType, typename StorageType>
-  static void BuildInterpolationMatrix(const SparseMatrix<FineDimensionType, FineDimensionType, ValueType> &srcFineSystemMatrix, typename FineDimensionType::IndexType valuesCount, SparseMatrix<FineDimensionType, CoarseDimensionType, ValueType> &dstInterpolationMatrix, StorageType &storage)
+  template<typename Space, typename FineDimensionType, typename CoarseDimensionType, typename StorageType>
+  static void BuildInterpolationMatrix(const SparseMatrix<FineDimensionType, FineDimensionType, typename Space::ValueType0> &srcFineSystemMatrix, typename FineDimensionType::IndexType valuesCount, SparseMatrix<FineDimensionType, CoarseDimensionType, typename Space::ScalarType> &dstInterpolationMatrix, StorageType &storage)
   {
-    using SystemMatrix = SparseMatrix<FineDimensionType, FineDimensionType, ValueType>;
-    auto diagCoeffsHandle = storage.template GetHandle<std::vector<ValueType>>();
+    using ConnectivityMatrix = SparseMatrix<FineDimensionType, FineDimensionType, typename Space::ScalarType>;
+    auto diagCoeffsHandle = storage.template GetHandle<std::vector<typename Space::ValueType0>>();
     auto diagCoeffs = diagCoeffsHandle.Get();
     diagCoeffs.resize(valuesCount);
 
-    auto connectivityMatrixHandle = storage.template GetHandle< SystemMatrix>();
+    auto connectivityMatrixHandle = storage.template GetHandle< ConnectivityMatrix >();
     auto connectivityMatrix = connectivityMatrixHandle.Get();
 
     almost::ComputeSparseDiag(srcFineSystemMatrix, diagCoeffs.data());
-    almost::BuildSparseConnectivityMatrix(srcFineSystemMatrix, diagCoeffs.data(), connectivityMatrix, storage);
+    almost::BuildSparseConnectivityMatrix<Space>(srcFineSystemMatrix, diagCoeffs.data(), connectivityMatrix, storage);
 
 
     BuildTentativeInterpolationMatrix(connectivityMatrix, valuesCount, dstInterpolationMatrix, storage);
@@ -310,15 +287,10 @@ namespace almost
     //int p = 1;
   }
 
-  template<typename DimensionType, typename ValueType, typename StorageType>
-  void IterateGaussSeidel(const SparseMatrix<DimensionType, DimensionType, ValueType> systemMatrix, const ValueType *rightSide, ValueType *values, size_t iterationsCount, StorageType &storage)
+  template<typename Space, typename MatrixType, typename ValueType, typename StorageType>
+  void IterateGaussSeidel(const MatrixType systemMatrix, const ValueType *rightSide, ValueType *values, size_t iterationsCount, StorageType &storage)
   {
-    using IndexType = typename DimensionType::IndexType;
-    auto adjacentIndicesHandle = storage.template GetHandle<std::vector<IndexType>>();
-    auto adjacentIndices = adjacentIndicesHandle.Get();
-    auto adjacentWeightsHandle = storage.template GetHandle<std::vector<ValueType>>();
-    auto adjacentWeights = adjacentWeightsHandle.Get();
-
+    using IndexType = typename MatrixType::RowIndexType;
     for (size_t iterationIndex = 0; iterationIndex < iterationsCount; iterationIndex++)
     {
       for (size_t valueNumber = 0; valueNumber < systemMatrix.GetRowsCount(); valueNumber++)
@@ -328,37 +300,36 @@ namespace almost
         assert(valueNumber == rowIndex); //typically we have non-zero at least on diag
 
         size_t adjacentValuesCount = systemMatrix.GetRowTermsCount(valueNumber);
-        adjacentIndices.resize(adjacentValuesCount);
-        adjacentWeights.resize(adjacentValuesCount);
 
-        systemMatrix.GetRowTerms(valueNumber, adjacentIndices.data(), adjacentWeights.data());
-        float remainder = rightSide[valueIndex];
-        float ownCoeff = -1.0f;
+        const auto *rowTerms = systemMatrix.GetRowTerms(valueNumber);
+        ValueType remainder = rightSide[valueIndex];
+        typename MatrixType::ValueType ownCoeff = typename MatrixType::ValueType(-1.0f);
 
         for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
         {
-          IndexType columnIndex = adjacentIndices[adjacentValueNumber];
+          IndexType columnIndex = rowTerms[adjacentValueNumber].columnIndex;
           size_t adjacentValueIndex = columnIndex;
 
           if (columnIndex == rowIndex)
-            ownCoeff = adjacentWeights[adjacentValueNumber];
+            ownCoeff = rowTerms[adjacentValueNumber].value;
           else
-            remainder -= adjacentWeights[adjacentValueNumber] * values[adjacentValueIndex];
+            remainder -= Space::Mul(rowTerms[adjacentValueNumber].value, values[adjacentValueIndex]);
         }
-        assert(ownCoeff > 0.0f);
-        values[valueIndex] = remainder / ownCoeff;
+        //assert(ownCoeff > 0.0f);
+        values[valueIndex] = Space::Divide(remainder, ownCoeff);
       }
     }
   }
 
-  template<typename DimensionType, typename ValueType, typename StorageType>
-  void BuildResiduals(const SparseMatrix<DimensionType, DimensionType, ValueType> systemMatrix, const ValueType* rightSide, const ValueType* values, ValueType *residuals, StorageType& storage)
+  template<typename Space, typename DimensionType, typename StorageType>
+  void BuildResiduals(
+    const SparseMatrix<DimensionType, DimensionType, typename Space::ValueType0> systemMatrix,
+    const typename Space::ResultType* rightSide,
+    const typename Space::ValueType1* values,
+    typename Space::ResultType *residuals,
+    StorageType& storage)
   {
     using IndexType = typename DimensionType::IndexType;
-    auto adjacentIndicesHandle = storage.template GetHandle<std::vector<IndexType>>();
-    auto adjacentIndices = adjacentIndicesHandle.Get();
-    auto adjacentWeightsHandle = storage.template GetHandle<std::vector<ValueType>>();
-    auto adjacentWeights = adjacentWeightsHandle.Get();
 
     for (size_t valueNumber = 0; valueNumber < systemMatrix.GetRowsCount(); valueNumber++)
     {
@@ -366,30 +337,23 @@ namespace almost
       size_t valueIndex = rowIndex; //valueNumber
 
       size_t adjacentValuesCount = systemMatrix.GetRowTermsCount(valueNumber);
-      adjacentIndices.resize(adjacentValuesCount);
-      adjacentWeights.resize(adjacentValuesCount);
-
-      systemMatrix.GetRowTerms(valueNumber, adjacentIndices.data(), adjacentWeights.data());
-      float remainder = rightSide[valueIndex];
+      const auto *rowTerms = systemMatrix.GetRowTerms(valueNumber);
+      typename Space::ResultType remainder = rightSide[valueIndex];
 
       for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
       {
-        IndexType columnIndex = adjacentIndices[adjacentValueNumber];
+        IndexType columnIndex = rowTerms[adjacentValueNumber].columnIndex;
         size_t adjacentValueIndex = columnIndex;
-        remainder -= adjacentWeights[adjacentValueNumber] * values[adjacentValueIndex];
+        remainder -= Space::Mul(rowTerms[adjacentValueNumber].value, values[adjacentValueIndex]);
       }
       residuals[valueIndex] = remainder;
     }
   }
 
-  template<typename RowDimensionType, typename ColumnDimensionType, typename ValueType, typename StorageType>
-  void BuildDenseVectorProduct(const SparseMatrix<RowDimensionType, ColumnDimensionType, ValueType> systemMatrix, const ValueType* denseVector, ValueType* denseProduct, StorageType& storage)
+  template<typename Space, typename MatrixType, typename ValueType, typename StorageType>
+  void BuildDenseVectorProduct(const MatrixType systemMatrix, const ValueType* denseVector, ValueType* denseProduct, StorageType& storage)
   {
-    using ColumnIndexType = typename ColumnDimensionType::IndexType;
-    auto adjacentIndicesHandle = storage.template GetHandle<std::vector<ColumnIndexType>>();
-    auto adjacentIndices = adjacentIndicesHandle.Get();
-    auto adjacentWeightsHandle = storage.template GetHandle<std::vector<ValueType>>();
-    auto adjacentWeights = adjacentWeightsHandle.Get();
+    using ColumnIndexType = typename MatrixType::ColumnIndexType;
 
     for (size_t valueNumber = 0; valueNumber < systemMatrix.GetRowsCount(); valueNumber++)
     {
@@ -397,17 +361,14 @@ namespace almost
       size_t valueIndex = rowIndex; //valueNumber
 
       size_t adjacentValuesCount = systemMatrix.GetRowTermsCount(valueNumber);
-      adjacentIndices.resize(adjacentValuesCount);
-      adjacentWeights.resize(adjacentValuesCount);
-
-      systemMatrix.GetRowTerms(valueNumber, adjacentIndices.data(), adjacentWeights.data());
+      const auto *rowTerms = systemMatrix.GetRowTerms(valueNumber);
       ValueType sum = ValueType(0);
 
       for (size_t adjacentValueNumber = 0; adjacentValueNumber < adjacentValuesCount; adjacentValueNumber++)
       {
-        size_t columnIndex = adjacentIndices[adjacentValueNumber];
+        size_t columnIndex = rowTerms[adjacentValueNumber].columnIndex;
         size_t adjacentValueIndex = columnIndex;
-        sum += adjacentWeights[adjacentValueNumber] * denseVector[adjacentValueIndex];
+        sum += Space::Mul(rowTerms[adjacentValueNumber].value, denseVector[adjacentValueIndex]);
       }
       denseProduct[valueIndex] = sum;
     }

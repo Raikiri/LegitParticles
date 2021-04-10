@@ -467,6 +467,11 @@ namespace legit
         this->depthAttachment = _depthAttachment;
         return *this;
       }
+      RenderPassDesc& SetVertexBuffers(std::vector<BufferProxyId>&& _vertexBufferProxies)
+      {
+        this->vertexBufferProxies = std::move(_vertexBufferProxies);
+        return *this;
+      }
 
       RenderPassDesc &SetInputImages(std::vector<ImageViewProxyId> &&_inputImageViewProxies)
       {
@@ -505,6 +510,7 @@ namespace legit
       Attachment depthAttachment;
 
       std::vector<ImageViewProxyId> inputImageViewProxies;
+      std::vector<BufferProxyId> vertexBufferProxies;
       std::vector<BufferProxyId> inoutStorageBufferProxies;
       std::vector<ImageViewProxyId> inoutStorageImageProxies;
 
@@ -605,6 +611,72 @@ namespace legit
 
       computePassDescs.emplace_back(computePassDesc);
     }
+
+    struct TransferPassDesc
+    {
+      TransferPassDesc()
+      {
+        profilerTaskName = "TransferPass";
+        profilerTaskColor = legit::Colors::silver;
+      }
+      TransferPassDesc& SetSrcImages(std::vector<ImageViewProxyId>&& _srcImageViewProxies)
+      {
+        this->srcImageViewProxies = std::move(_srcImageViewProxies);
+        return *this;
+      }
+
+      TransferPassDesc& SetDstImages(std::vector<ImageViewProxyId>&& _dstImageViewProxies)
+      {
+        this->dstImageViewProxies = std::move(_dstImageViewProxies);
+        return *this;
+      }
+
+      TransferPassDesc& SetSrcBuffers(std::vector<BufferProxyId>&& _srcBufferProxies)
+      {
+        this->srcBufferProxies = std::move(_srcBufferProxies);
+        return *this;
+      }
+
+      TransferPassDesc& SetDstBuffers(std::vector<BufferProxyId>&& _dstBufferProxies)
+      {
+        this->dstBufferProxies = std::move(_dstBufferProxies);
+        return *this;
+      }
+
+      TransferPassDesc& SetRecordFunc(std::function<void(PassContext)> _recordFunc)
+      {
+        this->recordFunc = _recordFunc;
+        return *this;
+      }
+
+      TransferPassDesc& SetProfilerInfo(uint32_t taskColor, std::string taskName)
+      {
+        this->profilerTaskColor = taskColor;
+        this->profilerTaskName = taskName;
+        return *this;
+      }
+
+      std::vector<BufferProxyId> srcBufferProxies;
+      std::vector<ImageViewProxyId> srcImageViewProxies;
+
+      std::vector<BufferProxyId> dstBufferProxies;
+      std::vector<ImageViewProxyId> dstImageViewProxies;
+
+      std::function<void(PassContext)> recordFunc;
+
+      std::string profilerTaskName;
+      uint32_t profilerTaskColor;
+    };
+
+    void AddPass(TransferPassDesc& transferPassDesc)
+    {
+      Task task;
+      task.type = Task::Types::TransferPass;
+      task.index = transferPassDescs.size();
+      AddTask(task);
+
+      transferPassDescs.emplace_back(transferPassDesc);
+    }
     void AddComputePass(
       std::vector<BufferProxyId> inoutBufferProxies,
       std::vector<ImageViewProxyId> inputImageViewProxies,
@@ -618,18 +690,6 @@ namespace legit
       AddPass(computePassDesc);
     }
 
-    void AddImageTransfer(legit::Buffer *srcBuffer, ImageViewProxyId dstImageViewId)
-    {
-      ImageTransferDesc imageTransferDesc;
-      imageTransferDesc.srcBuffer = srcBuffer;
-      imageTransferDesc.dstImageViewId = dstImageViewId;
-
-      Task task;
-      task.type = Task::Types::ImageTransfer;
-      task.index = imageTransferDescs.size();
-      AddTask(task);
-      imageTransferDescs.push_back(imageTransferDesc);
-    }
 
     struct ImagePresentPassDesc
     {
@@ -708,6 +768,11 @@ namespace legit
               passContext.resolvedBuffers[inoutBufferProxy.asInt] = GetResolvedBuffer(taskIndex, inoutBufferProxy);
             }
 
+            for (auto& vertexBufferProxy : renderPassDesc.vertexBufferProxies)
+            {
+              passContext.resolvedBuffers[vertexBufferProxy.asInt] = GetResolvedBuffer(taskIndex, vertexBufferProxy);
+
+            }
             vk::PipelineStageFlags srcStage;
             vk::PipelineStageFlags dstStage;
             std::vector<vk::ImageMemoryBarrier> imageBarriers;
@@ -737,6 +802,13 @@ namespace legit
             }
 
             std::vector<vk::BufferMemoryBarrier> bufferBarriers;
+
+            for (auto vertexBufferProxy : renderPassDesc.vertexBufferProxies)
+            {
+              auto storageBuffer = GetResolvedBuffer(taskIndex, vertexBufferProxy);
+              AddBufferBarriers(storageBuffer, BufferUsageTypes::VertexBuffer, taskIndex, srcStage, dstStage, bufferBarriers);
+            }
+
             for (auto inoutBufferProxy : renderPassDesc.inoutStorageBufferProxies)
             {
               auto storageBuffer = GetResolvedBuffer(taskIndex, inoutBufferProxy);
@@ -836,40 +908,71 @@ namespace legit
             if(computePassDesc.recordFunc)
               computePassDesc.recordFunc(passContext);
           }break;
-          case Task::Types::ImageTransfer:
+          case Task::Types::TransferPass:
           {
+            auto& transferPassDesc = transferPassDescs[task.index];
+            auto profilerTask = CreateProfilerTask(transferPassDesc);
+            auto gpuTask = gpuProfiler->StartScopedTask(profilerTask.name, profilerTask.color, vk::PipelineStageFlagBits::eBottomOfPipe);
+            auto cpuTask = cpuProfiler->StartScopedTask(profilerTask.name, profilerTask.color);
 
-            /*auto imageTransferDesc = imageTransferDescs[task.index];
-            //profilerTasks[taskIndex] = CreateProfilerTask(imageTransferDesc);
+            PassContext passContext;
+            passContext.resolvedImageViews.resize(imageViewProxies.GetSize(), nullptr);
+            passContext.resolvedBuffers.resize(bufferProxies.GetSize(), nullptr);
 
-            auto dstImageView = resolvedImageViews[imageTransferDesc.dstImageView.id];
+            for (auto& srcImageViewProxy : transferPassDesc.srcImageViewProxies)
+            {
+              passContext.resolvedImageViews[srcImageViewProxy.asInt] = GetResolvedImageView(taskIndex, srcImageViewProxy);
+            }
+            for (auto& dstImageViewProxy : transferPassDesc.dstImageViewProxies)
+            {
+              passContext.resolvedImageViews[dstImageViewProxy.asInt] = GetResolvedImageView(taskIndex, dstImageViewProxy);
+            }
+
+            for (auto& srcBufferProxy : transferPassDesc.srcBufferProxies)
+            {
+              passContext.resolvedBuffers[srcBufferProxy.asInt] = GetResolvedBuffer(taskIndex, srcBufferProxy);
+            }
+
+            for (auto& dstBufferProxy : transferPassDesc.dstBufferProxies)
+            {
+              passContext.resolvedBuffers[dstBufferProxy.asInt] = GetResolvedBuffer(taskIndex, dstBufferProxy);
+            }
 
             vk::PipelineStageFlags srcStage;
             vk::PipelineStageFlags dstStage;
-            std::vector<vk::ImageMemoryBarrier> barriers;
-            AddImageTransitionBarrier(dstImageView, vk::ImageLayout::eTransferDstOptimal, srcStage, dstStage, barriers);
-            if (barriers.size() > 0)
-              commandBuffer.pipelineBarrier(srcStage, dstStage, vk::DependencyFlags(), {}, {}, barriers);
 
-            assert(dstImageView->GetMipLevelsCount() == 1);
+            std::vector<vk::ImageMemoryBarrier> imageBarriers;
+            for (auto srcImageViewProxy : transferPassDesc.srcImageViewProxies)
+            {
+              auto imageView = GetResolvedImageView(taskIndex, srcImageViewProxy);
+              AddImageTransitionBarriers(imageView, ImageUsageTypes::TransferSrc, taskIndex, srcStage, dstStage, imageBarriers);
+            }
 
-            uint32_t mipLevel = dstImageView->GetBaseMipLevel();
-            auto imageSubresource = vk::ImageSubresourceLayers()
-              .setAspectMask(dstImageView->GetImageData()->GetAspectFlags())
-              .setMipLevel(mipLevel)
-              .setBaseArrayLayer(dstImageView->GetBaseArrayLayer())
-              .setLayerCount(dstImageView->GetArrayLayersCount());
+            for (auto dstImageViewProxy : transferPassDesc.dstImageViewProxies)
+            {
+              auto imageView = GetResolvedImageView(taskIndex, dstImageViewProxy);
+              AddImageTransitionBarriers(imageView, ImageUsageTypes::TransferDst, taskIndex, srcStage, dstStage, imageBarriers);
+            }
 
-            auto levelSize = dstImageView->GetImageData()->GetMipSize(mipLevel);
-            auto copyRegion = vk::BufferImageCopy()
-              .setBufferOffset(0)
-              .setBufferRowLength(0)
-              .setBufferImageHeight(0)
-              .setImageSubresource(imageSubresource)
-              .setImageOffset(vk::Offset3D(0, 0, 0))
-              .setImageExtent(vk::Extent3D(levelSize.x, levelSize.y, 1));
+            std::vector<vk::BufferMemoryBarrier> bufferBarriers;
+            for (auto srcBufferProxy : transferPassDesc.srcBufferProxies)
+            {
+              auto storageBuffer = GetResolvedBuffer(taskIndex, srcBufferProxy);
+              AddBufferBarriers(storageBuffer, BufferUsageTypes::TransferSrc, taskIndex, srcStage, dstStage, bufferBarriers);
+            }
 
-            commandBuffer.copyBufferToImage(imageTransferDesc.srcBuffer->GetHandle(), dstImageView->GetImageData()->GetHandle(), vk::ImageLayout::eTransferDstOptimal, { copyRegion });*/
+            for (auto dstBufferProxy : transferPassDesc.dstBufferProxies)
+            {
+              auto storageBuffer = GetResolvedBuffer(taskIndex, dstBufferProxy);
+              AddBufferBarriers(storageBuffer, BufferUsageTypes::TransferSrc, taskIndex, srcStage, dstStage, bufferBarriers);
+            }
+
+            if (imageBarriers.size() > 0 || bufferBarriers.size() > 0)
+              commandBuffer.pipelineBarrier(srcStage, dstStage, vk::DependencyFlags(), {}, bufferBarriers, imageBarriers);
+
+            passContext.commandBuffer = commandBuffer;
+            if (transferPassDesc.recordFunc)
+              transferPassDesc.recordFunc(passContext);
           }break;
           case Task::Types::ImagePresent:
           {
@@ -907,7 +1010,7 @@ namespace legit
       FlushExternalImages(commandBuffer, cpuProfiler, gpuProfiler);
 
       renderPassDescs.clear();
-      imageTransferDescs.clear();
+      transferPassDescs.clear();
       imagePresentDescs.clear();
       frameSyncDescs.clear();
       tasks.clear();
@@ -993,11 +1096,19 @@ namespace legit
               return ImageUsageTypes::ComputeShaderReadWrite;
           }
         }break;
-        case Task::Types::ImageTransfer:
+        case Task::Types::TransferPass:
         {
-          auto &imageTransferDesc = imageTransferDescs[task.index];
-          if (ImageViewContainsSubresource(GetResolvedImageView(taskIndex, imageTransferDesc.dstImageViewId), imageData, mipLevel, arrayLayer))
-            return ImageUsageTypes::TransferDst;
+          auto &transferPassDesc = transferPassDescs[task.index];
+          for (auto srcImageViewProxy : transferPassDesc.srcImageViewProxies)
+          {
+            if (ImageViewContainsSubresource(GetResolvedImageView(taskIndex, srcImageViewProxy), imageData, mipLevel, arrayLayer))
+              return ImageUsageTypes::TransferSrc;
+          }
+          for (auto dstImageViewProxy : transferPassDesc.dstImageViewProxies)
+          {
+            if (ImageViewContainsSubresource(GetResolvedImageView(taskIndex, dstImageViewProxy), imageData, mipLevel, arrayLayer))
+              return ImageUsageTypes::TransferDst;
+          }
         }break;
         case Task::Types::ImagePresent:
         {
@@ -1021,8 +1132,14 @@ namespace legit
           for (auto storageBufferProxy : renderPassDesc.inoutStorageBufferProxies)
           {
             auto storageBuffer = GetResolvedBuffer(taskIndex, storageBufferProxy);
-            if(buffer->GetHandle() == storageBuffer->GetHandle())
+            if (buffer->GetHandle() == storageBuffer->GetHandle())
               return BufferUsageTypes::GraphicsShaderReadWrite;
+          }
+          for (auto vertexBufferProxy : renderPassDesc.vertexBufferProxies)
+          {
+            auto vertexBuffer = GetResolvedBuffer(taskIndex, vertexBufferProxy);
+            if (buffer->GetHandle() == vertexBuffer->GetHandle())
+              return BufferUsageTypes::VertexBuffer;
           }
         }break;
         case Task::Types::ComputePass:
@@ -1033,6 +1150,23 @@ namespace legit
             auto storageBuffer = GetResolvedBuffer(taskIndex, storageBufferProxy);
             if (buffer->GetHandle() == storageBuffer->GetHandle())
               return BufferUsageTypes::ComputeShaderReadWrite;
+          }
+        }break;
+
+        case Task::Types::TransferPass:
+        {
+          auto& transferPassDesc = transferPassDescs[task.index];
+          for (auto srcBufferProxy : transferPassDesc.srcBufferProxies)
+          {
+            auto srcBuffer = GetResolvedBuffer(taskIndex, srcBufferProxy);
+            if (buffer->GetHandle() == srcBuffer->GetHandle())
+              return BufferUsageTypes::TransferSrc;
+          }
+          for (auto dstBufferProxy : transferPassDesc.dstBufferProxies)
+          {
+            auto dstBuffer = GetResolvedBuffer(taskIndex, dstBufferProxy);
+            if (buffer->GetHandle() == dstBuffer->GetHandle())
+              return BufferUsageTypes::TransferSrc;
           }
         }break;
       }
@@ -1361,13 +1495,7 @@ namespace legit
 
     std::vector<RenderPassDesc> renderPassDescs;
     std::vector<ComputePassDesc> computePassDescs;
-
-    struct ImageTransferDesc
-    {
-      ImageViewProxyId dstImageViewId;
-      legit::Buffer *srcBuffer;
-    };
-    std::vector<ImageTransferDesc> imageTransferDescs;
+    std::vector<TransferPassDesc> transferPassDescs;
 
 
     std::vector<ImagePresentPassDesc> imagePresentDescs;
@@ -1379,7 +1507,7 @@ namespace legit
       {
         RenderPass,
         ComputePass,
-        ImageTransfer,
+        TransferPass,
         ImagePresent,
         FrameSync
       };
@@ -1408,6 +1536,15 @@ namespace legit
       task.endTime = -1.0f;
       task.name = computePassDesc.profilerTaskName;
       task.color = computePassDesc.profilerTaskColor;
+      return task;
+    }
+    legit::ProfilerTask CreateProfilerTask(const TransferPassDesc& transferPassDesc)
+    {
+      legit::ProfilerTask task;
+      task.startTime = -1.0f;
+      task.endTime = -1.0f;
+      task.name = transferPassDesc.profilerTaskName;
+      task.color = transferPassDesc.profilerTaskColor;
       return task;
     }
     legit::ProfilerTask CreateProfilerTask(const ImagePresentPassDesc &imagePresentPassDesc)

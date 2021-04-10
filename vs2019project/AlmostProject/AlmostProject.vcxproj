@@ -80,8 +80,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>$(SolutionDir)\..\build\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)\..\bin\$(Platform)\</OutDir>
-    <IncludePath>d:\Portable soft\VulkanSDK\1.1.121.2\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>d:\Portable soft\VulkanSDK\1.1.121.2\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.162.0\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.2.162.0\Lib;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SourcePath)</SourcePath>
     <TargetName>AlmostEngine</TargetName>
   </PropertyGroup>
@@ -102,6 +102,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)\..\dependencies\imgui;$(SolutionDir)\..\dependencies\spirv-cross;$(SolutionDir)\..\dependencies\tiny_obj_loader\include;$(SolutionDir)\..\dependencies\glm\include;$(SolutionDir)\..\dependencies\jsoncpp\;$(SolutionDir)\..\dependencies\glfw\include;$(SolutionDir)\..\dependencies\gli;$(SolutionDir)\..\dependencies\entt</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <FloatingPointExceptions>true</FloatingPointExceptions>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\dependencies\glfw\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -131,8 +132,13 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\dependencies\imgui;$(SolutionDir)\..\dependencies\spirv-cross;$(SolutionDir)\..\dependencies\tiny_obj_loader\include;$(SolutionDir)\..\dependencies\glm\include;$(SolutionDir)\..\dependencies\jsoncpp\;$(SolutionDir)\..\dependencies\glfw\include;$(SolutionDir)\..\dependencies\gli;$(SolutionDir)\..\dependencies\entt</AdditionalIncludeDirectories>
-      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/bigobj /DNDEBUG %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <IntelJCCErratum>true</IntelJCCErratum>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -158,6 +164,7 @@
     <ClCompile Include="..\..\dependencies\spirv-cross\spirv_parser.cpp" />
     <ClCompile Include="..\..\dependencies\spirv-cross\spirv_reflect.cpp" />
     <ClCompile Include="..\..\dependencies\tiny_obj_loader\include\tiny_obj_loader.cc" />
+    <ClCompile Include="..\..\src\ECS\Systems\Physics.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -234,6 +241,7 @@
     <ClInclude Include="..\..\src\Maths\TensorMaths.h" />
     <ClInclude Include="..\..\src\Utils\CachedArray.h" />
     <ClInclude Include="..\..\src\Utils\GlmInclude.h" />
+    <ClInclude Include="..\..\src\Utils\GroupArg.h" />
     <ClInclude Include="..\..\src\Utils\ScopedCtx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

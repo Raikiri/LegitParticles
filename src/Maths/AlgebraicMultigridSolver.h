@@ -9,21 +9,25 @@
 
 namespace almost
 {
-  template<typename DimensionType, typename ValueType>
+  template<typename Space, typename DimensionType>
   struct MultigridLayer
   {
+    using ValueType0 = typename Space::ValueType0;
+    using ValueType1 = typename Space::ValueType1;
+    using ResultType = typename Space::ResultType;
+    using ScalarType = typename Space::ScalarType;
     using FineDimensionType = typename DimensionType;
-    SparseMatrix<DimensionType, DimensionType, ValueType> systemMatrix;
+    SparseMatrix<DimensionType, DimensionType, ValueType0> systemMatrix;
 
     size_t valuesCount;
-    std::vector<ValueType> rightSide;
-    std::vector<ValueType> values;
-    std::vector<ValueType> residuals;
+    std::vector<ResultType> rightSide;
+    std::vector<ValueType1> values;
+    std::vector<ResultType> residuals;
 
-    SparseMatrix<DimensionType, FineDimensionType, ValueType> tmpMatrix;
+    SparseMatrix<DimensionType, FineDimensionType, ValueType0> tmpMatrix;
 
-    SparseMatrix<FineDimensionType, DimensionType, ValueType> restrictionMatrix; //fine prev->this
-    SparseMatrix<DimensionType, FineDimensionType, ValueType> interpolationMatrix; //this->fine prev
+    SparseMatrix<FineDimensionType, DimensionType, ScalarType> restrictionMatrix; //fine prev->this
+    SparseMatrix<DimensionType, FineDimensionType, ScalarType> interpolationMatrix; //this->fine prev
 
     void Resize(size_t _valuesCount)
     {
@@ -35,18 +39,18 @@ namespace almost
     template<typename StorageType>
     void IterateGaussSeidel(size_t iterationsCount, StorageType &storage)
     {
-      almost::IterateGaussSeidel(systemMatrix, rightSide.data(), values.data(), iterationsCount, storage);
+      almost::IterateGaussSeidel<Space>(systemMatrix, rightSide.data(), values.data(), iterationsCount, storage);
     }
 
     template<typename StorageType>
     void BuildResiduals(StorageType &storage)
     {
-      almost::BuildResiduals(systemMatrix, rightSide.data(), values.data(), residuals.data(), storage);
+      almost::BuildResiduals<Space>(systemMatrix, rightSide.data(), values.data(), residuals.data(), storage);
     }
 
     void ResetValues()
     {
-      std::fill_n(values.data(), values.size(), ValueType(0));
+      std::fill_n(values.data(), values.size(), ValueType1(0));
     }
 
 
@@ -81,33 +85,38 @@ namespace almost
     }*/
   };
 
-  template<typename DimensionType, typename ValueType>
+  template<typename Space, typename DimensionType>
   struct AlgebraicMultigridSolver
   {
+    using ValueType0 = typename Space::ValueType0;
+    using ValueType1 = typename Space::ValueType1;
+    using ResultType = typename Space::ResultType;
+
     AlgebraicMultigridSolver()
     {
       layerSolvers.resize(4);
     }
 
     template<typename StorageType>
-    void LoadSystem(const SparseMatrix<DimensionType, DimensionType, ValueType>& systemMatrix, size_t valuesCount, StorageType &storage)
+    void LoadSystem(const SparseMatrix<DimensionType, DimensionType, ValueType0>& systemMatrix, StorageType &storage)
     {
-      layerSolvers[0].Resize(valuesCount);
+      assert(systemMatrix.rowDimension.size == systemMatrix.columnDimension.size);
+      layerSolvers[0].Resize(systemMatrix.rowDimension.size);
       layerSolvers[0].systemMatrix = systemMatrix;
 
       for (size_t i = 0; i < layerSolvers.size() - 1; i++)
       {
-        almost::BuildInterpolationMatrix<DimensionType, DimensionType, ValueType, StorageType>(layerSolvers[i].systemMatrix, layerSolvers[i].valuesCount, layerSolvers[i].interpolationMatrix, storage);
+        almost::BuildInterpolationMatrix<Space>(layerSolvers[i].systemMatrix, layerSolvers[i].valuesCount, layerSolvers[i].interpolationMatrix, storage);
         layerSolvers[i].restrictionMatrix.BuildFromTransposed(layerSolvers[i].interpolationMatrix, storage);
 
-        layerSolvers[i + 1].Resize(layerSolvers[i].restrictionMatrix.GetRowsCount());
-        layerSolvers[i].tmpMatrix.BuildFromSparseProduct(layerSolvers[i].restrictionMatrix, layerSolvers[i].systemMatrix, storage);
-        layerSolvers[i + 1].systemMatrix.BuildFromSparseProduct(layerSolvers[i].tmpMatrix, layerSolvers[i].interpolationMatrix, storage);
+        layerSolvers[i + 1].Resize(layerSolvers[i].restrictionMatrix.rowDimension.size);
+        layerSolvers[i].tmpMatrix.BuildFromSparseProduct<Space>(layerSolvers[i].restrictionMatrix, layerSolvers[i].systemMatrix, storage);
+        layerSolvers[i + 1].systemMatrix.BuildFromSparseProduct<Space>(layerSolvers[i].tmpMatrix, layerSolvers[i].interpolationMatrix, storage);
       }
     }
 
     template<typename StorageType>
-    void Solve(const ValueType *rightSide, size_t iterationsCount, StorageType &storage)
+    void Solve(const ResultType *rightSide, size_t iterationsCount, StorageType &storage)
     {
       std::copy_n(rightSide, layerSolvers[0].valuesCount, layerSolvers[0].rightSide.data());
       for (size_t i = 1; i < layerSolvers.size(); i++)
@@ -115,7 +124,7 @@ namespace almost
         layerSolvers[i - 1].ResetValues();
         layerSolvers[i - 1].IterateGaussSeidel(iterationsCount / 2, storage);
         layerSolvers[i - 1].BuildResiduals(storage);
-        BuildDenseVectorProduct(layerSolvers[i - 1].restrictionMatrix, layerSolvers[i - 1].residuals.data(), layerSolvers[i].rightSide.data(), storage);
+        BuildDenseVectorProduct<Space>(layerSolvers[i - 1].restrictionMatrix, layerSolvers[i - 1].residuals.data(), layerSolvers[i].rightSide.data(), storage);
       }
       layerSolvers.back().ResetValues();
 
@@ -127,22 +136,22 @@ namespace almost
 
         if (layerIndex > 0)
         {
-          std::vector<ValueType> valuesDelta;
+          std::vector<ValueType1> valuesDelta;
           valuesDelta.resize(layerSolvers[layerIndex - 1].valuesCount);
 
-          almost::BuildDenseVectorProduct(layerSolvers[layerIndex - 1].interpolationMatrix, layerSolvers[layerIndex].values.data(), valuesDelta.data(), storage);
+          almost::BuildDenseVectorProduct<Space>(layerSolvers[layerIndex - 1].interpolationMatrix, layerSolvers[layerIndex].values.data(), valuesDelta.data(), storage);
           for (size_t valueIndex = 0; valueIndex < layerSolvers[layerIndex - 1].valuesCount; valueIndex++)
             layerSolvers[layerIndex - 1].values[valueIndex] += valuesDelta[valueIndex];
         }
       }
     }
 
-    ValueType *GetValues()
+    ValueType1 *GetValues()
     {
       return layerSolvers[0].values.data();
     }
 
   private:
-    std::vector<MultigridLayer<DimensionType, ValueType>> layerSolvers;
+    std::vector<MultigridLayer<Space, DimensionType>> layerSolvers;
   };
 }

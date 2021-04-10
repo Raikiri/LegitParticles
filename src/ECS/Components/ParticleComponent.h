@@ -25,5 +25,6 @@ namespace almost
   struct DefPosComponent
   {
     glm::vec2 defPos;
+    bool isDraggable;
   };
 }

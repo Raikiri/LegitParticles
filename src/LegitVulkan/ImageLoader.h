@@ -23,7 +23,7 @@ namespace legit
     std::vector<uint8_t> texels;
   };
 
-  ImageTexelData CreateTestCubeTexelData()
+  static ImageTexelData CreateTestCubeTexelData()
   {
     glm::uvec3 size = { 64, 64, 1 };
     ImageTexelData texelData;
@@ -64,7 +64,7 @@ namespace legit
     return texelData;
   }
 
-  ImageTexelData LoadTexelDataFromGli(const gli::texture &texture)
+  static ImageTexelData LoadTexelDataFromGli(const gli::texture &texture)
   {
     glm::uvec3 size = { texture.extent().x, texture.extent().y, texture.extent().z };
     ImageTexelData texelData;
@@ -139,13 +139,13 @@ namespace legit
     assert(texelData.texels.size() == currOffset);
     return texelData;
   }
-  ImageTexelData LoadKtxFromFile(std::string filename)
+  static ImageTexelData LoadKtxFromFile(std::string filename)
   {
     gli::texture texture = gli::load(filename);
     return LoadTexelDataFromGli(texture);
   }
 
-  gli::texture LoadTexelDataToGli(ImageTexelData texelData)
+  static gli::texture LoadTexelDataToGli(ImageTexelData texelData)
   {
     gli::texture::format_type format;
     switch (texelData.format)
@@ -189,7 +189,7 @@ namespace legit
   }
 
 
-  legit::ImageTexelData CreateSimpleImageTexelData(glm::uint8 *pixels, int width, int height)
+  static legit::ImageTexelData CreateSimpleImageTexelData(glm::uint8 *pixels, int width, int height)
   {
     legit::ImageTexelData texelData;
     texelData.baseSize = glm::uvec3(width, height, 1);
@@ -208,7 +208,7 @@ namespace legit
 
 
 
-  void AddTransitionBarrier(legit::ImageData *imageData, legit::ImageUsageTypes srcUsageType, legit::ImageUsageTypes dstUsageType, vk::CommandBuffer commandBuffer)
+  static void AddTransitionBarrier(legit::ImageData *imageData, legit::ImageUsageTypes srcUsageType, legit::ImageUsageTypes dstUsageType, vk::CommandBuffer commandBuffer)
   {
     auto srcImageAccessPattern = GetSrcImageAccessPattern(srcUsageType);
     auto dstImageAccessPattern = GetDstImageAccessPattern(dstUsageType);
@@ -235,7 +235,7 @@ namespace legit
     commandBuffer.pipelineBarrier(srcImageAccessPattern.stage, dstImageAccessPattern.stage, vk::DependencyFlags(), {}, {}, { imageBarrier });
   }
 
-  void LoadTexelData(legit::Core *core, const ImageTexelData *texelData, legit::ImageData *dstImageData)
+  static void LoadTexelData(legit::Core *core, const ImageTexelData *texelData, legit::ImageData *dstImageData)
   {
     auto stagingBuffer = std::unique_ptr<legit::Buffer>(new legit::Buffer(core->GetPhysicalDevice(), core->GetLogicalDevice(), texelData->texels.size(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent));
 

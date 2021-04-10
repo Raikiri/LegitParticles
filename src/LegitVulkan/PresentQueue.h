@@ -27,7 +27,7 @@ namespace legit
         .setWaitSemaphoreCount(1)
         .setPWaitSemaphores(waitSemaphores);
 
-      core->GetPresentQueue().presentKHR(presentInfo);
+      auto res = core->GetPresentQueue().presentKHR(presentInfo);
     }
     vk::Extent2D GetImageSize()
     {

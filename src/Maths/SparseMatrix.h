@@ -5,12 +5,23 @@
 namespace almost
 {
   template<typename T>
-  struct BasicProduct
+  struct BasicSpace
   {
+    using ValueType0 = T;
+    using ValueType1 = T;
     using ResultType = T;
-    static T Get(const T& val0, const T& val1)
+    using ScalarType = float;
+    static T Mul(const ValueType0& val0, const T& val1)
     {
       return val0 * val1;
+    }
+    static ValueType0 Divide(const ResultType& val0, const T& val1)
+    {
+      return val0 / val1;
+    }
+    static ScalarType SpectralRadius(ValueType0 center, ValueType0 val0, ValueType0 val1)
+    {
+      return sqrt(center * center / abs(val0 * val1));
     }
   };
   template<typename RowDimensionT, typename ColumnDimensionT, typename ValueTypeT>
@@ -22,7 +33,13 @@ namespace almost
     using ColumnIndexType = typename ColumnDimension::IndexType;
     using ValueType = ValueTypeT;
     using SelfType = SparseMatrix<RowDimension, ColumnDimension, ValueType>;
-    void AddRow(RowIndexType rowIndex, const ColumnIndexType *columnIndices, const ValueType *values, size_t termsCount)
+    struct RowTerm
+    {
+      ColumnIndexType columnIndex;
+      ValueType value;
+    };
+
+    /*void AddRow(RowIndexType rowIndex, const ColumnIndexType *columnIndices, const ValueType *values, size_t termsCount)
     {
       Row newRow;
       newRow.rowIndex = rowIndex;
@@ -36,6 +53,34 @@ namespace almost
         rowTerms[newRow.termsStart + termIndex].value = values[termIndex];
       }
       rows.push_back(newRow);
+    }*/
+
+    void AppendRow(RowIndexType rowIndex)
+    {
+      Row newRow;
+      newRow.rowIndex = rowIndex;
+      newRow.termsStart = rowTerms.size();
+      newRow.termsCount = 0;
+      rows.push_back(newRow);
+    }
+
+
+    void AppendTerm(ColumnIndexType columnIndex, ValueType value)
+    {
+      auto& lastRow = rows.back();
+      lastRow.termsCount++;
+
+      RowTerm newTerm;
+      newTerm.columnIndex = columnIndex;
+      newTerm.value = value;
+      rowTerms.push_back(newTerm);
+    }
+
+    void AppendTerms(RowTerm* newRowTerms, size_t termsCount)
+    {
+      auto& lastRow = rows.back();
+      lastRow.termsCount += termsCount;      
+      std::copy_n(newRowTerms, termsCount, std::back_inserter(rowTerms));
     }
 
     size_t GetRowsCount() const
@@ -51,18 +96,20 @@ namespace almost
     {
       return rows[rowNumber].termsCount;
     }
-    void GetRowTerms(size_t rowNumber, ColumnIndexType *columnIndices, ValueType *values) const
+    RowTerm* GetRowTerms(size_t rowNumber)
     {
-      for (size_t termIndex = 0; termIndex < rows[rowNumber].termsCount; termIndex++)
-      {
-        size_t termsStart = rows[rowNumber].termsStart;
-        columnIndices[termIndex] = rowTerms[termsStart + termIndex].columnIndex;
-        values[termIndex] = rowTerms[termsStart + termIndex].value;
-      }
+      size_t termsStart = rows[rowNumber].termsStart;
+      return rowTerms.data() + termsStart;
+    }
+    const RowTerm* GetRowTerms(size_t rowNumber) const
+    {
+      size_t termsStart = rows[rowNumber].termsStart;
+      return rowTerms.data() + termsStart;
     }
 
-    bool CheckSortedIndices()
+    bool CheckSortedIndices() const
     {
+      //return true;
       bool isOk = true;
       for (size_t rowNumber = 0; rowNumber < rows.size(); rowNumber++)
       {
@@ -79,7 +126,7 @@ namespace almost
       return isOk;
     }
 
-    void SortIndices()
+    /*void SortIndices()
     {
       std::sort(rows.begin(), rows.end(),
         [](const Row& left, const Row& right) -> bool
@@ -113,7 +160,7 @@ namespace almost
         rowTermsOffset += row.termsCount;
       }
       return *this;
-    }
+    }*/
 
     struct Element
     {
@@ -193,7 +240,7 @@ namespace almost
       return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), srcMatrix.columnDimension, srcMatrix.rowDimension);
     }
 
-    template<typename Product = BasicProduct<ValueType>, typename ValueType0, typename ValueType1, typename CommonDimension, typename StorageType>
+    template<typename Space = BasicProduct<ValueType>, typename ValueType0, typename ValueType1, typename CommonDimension, typename StorageType>
     SelfType &BuildFromDenseProduct(const SparseMatrix<RowDimension, CommonDimension, ValueType0>& matrix0, const SparseMatrix<ColumnDimension, CommonDimension, ValueType1> &matrix1Transposed, StorageType &storage)
     {
       assert(matrix0.columnDimension.size == matrix1Transposed.columnDimension.size);
@@ -230,7 +277,7 @@ namespace almost
               termNumber1++;
             else
             {
-              newElement.value += Product::Get(term0.value, term1.value);
+              newElement.value += Space::Get(term0.value, term1.value);
               termNumber0++;
               termNumber1++;
             }
@@ -242,18 +289,120 @@ namespace almost
 
       return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), matrix0.rowDimension, matrix1Transposed.rowDimension);
     }
+    
+    template<typename StorageType>
+    SelfType &BuildFromSum(const SelfType& matrix0, float mult0, const SelfType& matrix1, float mult1, StorageType &storage)
+    {
+      assert(matrix0.columnDimension.size == matrix1.columnDimension.size);
+      assert(matrix0.rowDimension.size == matrix1.rowDimension.size);
 
-    template<typename Product = BasicProduct<ValueType>, typename CommonDimension, typename ValueType0, typename ValueType1, typename StorageType>
+      BuildEmpty(matrix0.rowDimension, matrix0.columnDimension);
+      auto elementsHandle = storage.template GetHandle < std::vector < Element >> ();
+      auto elements = elementsHandle.Get();
+      elements.clear();
+
+      
+      for (size_t rowNumber = 0; rowNumber < matrix0.rows.size(); rowNumber++)
+      {
+        RowIndexType rowIndex = matrix0.GetRowIndex(rowNumber);
+        size_t termsCount = matrix0.GetRowTermsCount(rowNumber);
+        const RowTerm* terms = matrix0.GetRowTerms(rowNumber);
+        for (size_t termNumber = 0; termNumber < termsCount; termNumber++)
+        {
+          auto& term = terms[termNumber];
+          Element newElement;
+          newElement.rowIndex = rowIndex;
+          newElement.columnIndex = term.columnIndex;
+          newElement.value = term.value * mult0;
+          elements.push_back(newElement);
+        }
+      }
+
+      for (size_t rowNumber = 0; rowNumber < matrix1.rows.size(); rowNumber++)
+      {
+        RowIndexType rowIndex = matrix1.GetRowIndex(rowNumber);
+        size_t termsCount = matrix1.GetRowTermsCount(rowNumber);
+        const RowTerm* terms = matrix1.GetRowTerms(rowNumber);
+        for (size_t termNumber = 0; termNumber < termsCount; termNumber++)
+        {
+          auto& term = terms[termNumber];
+          Element newElement;
+          newElement.rowIndex = rowIndex;
+          newElement.columnIndex = term.columnIndex;
+          newElement.value = term.value * mult1;
+          elements.push_back(newElement);
+        }
+      }
+
+      SortElements(elements.data(), elements.size());
+      return BuildFromSortedElements(elements.data(), elements.size(), matrix0.rowDimension, matrix0.columnDimension);
+
+      /*auto columnIndicesHandle0 = storage.template GetHandle<std::vector<ColumnIndexType>>();
+      auto columnTermsHandle0 = storage.template GetHandle<std::vector<ValueType>>();
+      auto columnIndicesHandle1 = storage.template GetHandle<std::vector<ColumnIndexType>>();
+      auto columnTermsHandle1 = storage.template GetHandle<std::vector<ValueType>>();
+      auto& columnIndices0 = columnIndicesHandle0.Get();
+      auto& columnTerms0 = columnTermsHandle0.Get();
+      auto& columnIndices1 = columnIndicesHandle1.Get();
+      auto& columnTerms1 = columnTermsHandle1.Get();
+      indices.clear();
+      values.clear();
+
+
+      size_t rowNumber0 = 0;
+      size_t rowNumber1 = 0;
+      while (rowNumber0 < matrix0.rows.size() && rowNumber1 < matrix1.rows.size();)
+      {
+        auto& row0 = matrix0.rows[rowNumber0];
+        auto& row1 = matrix1.rows[rowNumber1];
+
+        if (row0.rowIndex < row1.rowIndex)
+        {
+          size_t termsCount = matrix0.GetRowTermsCount(rowNumber0);
+          columnIndices0.resize(termsCount);
+          columnTerms0.resize(termsCount);
+
+          matrix0.GetRowTerms(rowNumber0, columnIndices0(), columnTerms0.data());
+          AddRow(row0.rowIndex, columnIndices0.data(), columnTerms0.data(), termsCount);
+          rowNumber0++;
+        }
+        else
+        if (row1.rowIndex < row0.rowIndex)
+        {
+          size_t termsCount = matrix1.GetRowTermsCount(rowNumber1);
+          columnIndices1.resize(termsCount);
+          columnTerms1.resize(termsCount);
+
+          matrix1.GetRowTerms(rowNumber1, columnIndices1.data(), columnTerms1.data());
+          AddRow(row1.rowIndex, columnIndices1.data(), columnTerms1.data(), termsCount);
+          rowNumber1++;
+        }
+        else
+        {
+          newElement.value += Space::Get(term0.value, term1.value);
+          termNumber0++;
+          termNumber1++;
+        }
+      }
+
+      return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), matrix0.rowDimension, matrix1Transposed.rowDimension);*/
+    }
+
+
+    template<typename Space = BasicProduct<ValueType>, typename CommonDimension, typename ValueType0, typename ValueType1, typename StorageType>
     SelfType &BuildFromSparseProduct(const SparseMatrix<RowDimension, CommonDimension, ValueType0>& matrix0, const SparseMatrix<CommonDimension, ColumnDimension, ValueType1>& matrix1, StorageType& storage)
     {
       assert(matrix0.columnDimension.size == matrix1.rowDimension.size);
       BuildEmpty(matrix0.rowDimension, matrix1.columnDimension);
-      auto elements = storage.template GetHandle<std::vector<Element>>();
-      elements.Get().clear();
-
+      auto elementsHandle = storage.template GetHandle<std::vector<Element>>();
+      auto& elements = elementsHandle.Get();
+      elements.clear();
+      //matrix0.CheckSortedIndices();
+      //matrix1.CheckSortedIndices();
       for (size_t rowNumber = 0; rowNumber < matrix0.rows.size(); rowNumber++)
       {
         auto &row = matrix0.rows[rowNumber];
+        size_t rowStart = elements.size();
         for (size_t termNumber = 0; termNumber < row.termsCount; termNumber++)
         {
           auto &term = matrix0.rowTerms[row.termsStart + termNumber];
@@ -270,16 +419,27 @@ namespace almost
             Element newElement;
             newElement.rowIndex = row.rowIndex;
             newElement.columnIndex = otherColumnIndex;
-            newElement.value = Product::Get(term.value, otherTerm.value);
+            newElement.value = Space::Mul(term.value, otherTerm.value);
             //if (newElement.value != ProductType(0))
-            elements.Get().push_back(newElement);
+            elements.push_back(newElement);
           }
         }
+        SortElements(elements.data() + rowStart, elements.size() - rowStart);
       }
-      SortElements(elements.Get().data(), elements.Get().size());
-      return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), matrix0.rowDimension, matrix1.columnDimension);
+      //SortElements(elements.Get().data(), elements.Get().size());
+      return BuildFromSortedElements(elements.data(), elements.size(), matrix0.rowDimension, matrix1.columnDimension);
     }
 
+    SelfType& BuildFromDiag(ValueType diag, RowDimension rowDimension)
+    {
+      BuildEmpty(rowDimension, rowDimension);
+      for (RowIndexType rowIndex = 0; rowIndex < rowDimension.size; rowIndex++)
+      {
+        AppendRow(rowIndex);
+        AppendTerm(rowIndex, diag);
+      }
+      return *this;
+    }
     size_t FindRowNumber(RowIndexType rowIndex) const
     {
       Row tmpRow;
@@ -336,11 +496,6 @@ namespace almost
     };
     std::vector<Row> rows;
 
-    struct RowTerm
-    {
-      ColumnIndexType columnIndex;
-      ValueType value;
-    };
     std::vector<RowTerm> rowTerms;
     RowDimension rowDimension;
     ColumnDimension columnDimension;
