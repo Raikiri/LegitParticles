@@ -40,6 +40,9 @@
     <Filter Include="ECS\Scenes">
       <UniqueIdentifier>{902dfab4-ccb8-4df7-9b67-5bdf9ca93c54}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Maths\StrainConstraints">
+      <UniqueIdentifier>{90184a79-e7cc-4405-8a8f-432a6141ef84}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cfg.cpp">
@@ -93,6 +96,9 @@
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\ECS\Systems\Physics.cpp">
       <Filter>ECS\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Maths\StrainConstraints\StrainConstraints.cpp">
+      <Filter>Maths\StrainConstraints</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -323,6 +329,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\ECS\Scenes\ParticlesScene.h">
       <Filter>ECS\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\StrainConstraints\StrainConstraints.h">
+      <Filter>Maths\StrainConstraints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Components\TriangleComponent.h">
+      <Filter>ECS\Components</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

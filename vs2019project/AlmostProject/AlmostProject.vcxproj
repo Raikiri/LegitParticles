@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -138,8 +138,12 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FloatingPointModel>Fast</FloatingPointModel>
       <IntelJCCErratum>true</IntelJCCErratum>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <FloatingPointExceptions>false</FloatingPointExceptions>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AssemblerOutput>NoListing</AssemblerOutput>
+      <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -167,6 +171,7 @@
     <ClCompile Include="..\..\dependencies\tiny_obj_loader\include\tiny_obj_loader.cc" />
     <ClCompile Include="..\..\src\ECS\Systems\Physics.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\Maths\StrainConstraints\StrainConstraints.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\dependencies\imgui\imconfig.h" />
@@ -190,6 +195,7 @@
     <ClInclude Include="..\..\dependencies\spirv-cross\spirv_reflect.hpp" />
     <ClInclude Include="..\..\src\ECS\Components\LinkComponent.h" />
     <ClInclude Include="..\..\src\ECS\Components\ParticleComponent.h" />
+    <ClInclude Include="..\..\src\ECS\Components\TriangleComponent.h" />
     <ClInclude Include="..\..\src\ECS\Context\CameraData.h" />
     <ClInclude Include="..\..\src\ECS\Context\FullscreenRendererData.h" />
     <ClInclude Include="..\..\src\ECS\Context\InputData.h" />
@@ -240,6 +246,7 @@
     <ClInclude Include="..\..\src\Maths\SparseMatrix.h" />
     <ClInclude Include="..\..\src\Maths\SparseMatrixUtils.h" />
     <ClInclude Include="..\..\src\Maths\StackStorage.h" />
+    <ClInclude Include="..\..\src\Maths\StrainConstraints\StrainConstraints.h" />
     <ClInclude Include="..\..\src\Maths\TensorMaths.h" />
     <ClInclude Include="..\..\src\Utils\CachedArray.h" />
     <ClInclude Include="..\..\src\Utils\GlmInclude.h" />

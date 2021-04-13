@@ -240,7 +240,7 @@ namespace almost
       return BuildFromSortedElements(elements.Get().data(), elements.Get().size(), srcMatrix.columnDimension, srcMatrix.rowDimension);
     }
 
-    template<typename Space = BasicProduct<ValueType>, typename ValueType0, typename ValueType1, typename CommonDimension, typename StorageType>
+    template<typename Space, typename ValueType0, typename ValueType1, typename CommonDimension, typename StorageType>
     SelfType &BuildFromDenseProduct(const SparseMatrix<RowDimension, CommonDimension, ValueType0>& matrix0, const SparseMatrix<ColumnDimension, CommonDimension, ValueType1> &matrix1Transposed, StorageType &storage)
     {
       assert(matrix0.columnDimension.size == matrix1Transposed.columnDimension.size);
@@ -389,7 +389,7 @@ namespace almost
     }
 
 
-    template<typename Space = BasicProduct<ValueType>, typename CommonDimension, typename ValueType0, typename ValueType1, typename StorageType>
+    template<typename Space, typename CommonDimension, typename ValueType0, typename ValueType1, typename StorageType>
     SelfType &BuildFromSparseProduct(const SparseMatrix<RowDimension, CommonDimension, ValueType0>& matrix0, const SparseMatrix<CommonDimension, ColumnDimension, ValueType1>& matrix1, StorageType& storage)
     {
       assert(matrix0.columnDimension.size == matrix1.rowDimension.size);

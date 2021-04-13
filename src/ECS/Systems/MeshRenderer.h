@@ -69,7 +69,7 @@ namespace almost
 
       auto shader = meshRendererData.shader.program.get();
 
-      auto pipeineInfo = rendererData.core->GetPipelineCache()->BindGraphicsPipeline(passContext.GetCommandBuffer(), passContext.GetRenderPass()->GetHandle(), legit::DepthSettings::Disabled(), { legit::BlendSettings::Opaque() }, meshRendererData.vertexDecl, vk::PrimitiveTopology::eTriangleList, shader);
+      auto pipeineInfo = rendererData.core->GetPipelineCache()->BindGraphicsPipeline(passContext.GetCommandBuffer(), passContext.GetRenderPass()->GetHandle(), legit::DepthSettings::Disabled(), { legit::BlendSettings::AlphaBlend() }, meshRendererData.vertexDecl, vk::PrimitiveTopology::eTriangleList, shader);
       {
         const legit::DescriptorSetLayoutKey *shaderDataSetInfo = shader->GetSetInfo(ShaderDataSetIndex);
         auto shaderData = rendererData.frameInfo.memoryPool->BeginSet(shaderDataSetInfo);

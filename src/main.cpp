@@ -22,6 +22,7 @@
 
 #include "ECS\Components\ParticleComponent.h"
 #include "ECS\Components\LinkComponent.h"
+#include "ECS\Components\TriangleComponent.h"
 
 #include "ECS\Scenes\ParticlesScene.h"
 
@@ -54,6 +55,7 @@ int main(int argsCount, char **args)
 
     auto particleGroup = reg.group<almost::ParticleComponent, almost::ParticleIndexComponent, almost::MassComponent, almost::DefPosComponent>();
     auto linkGroup = reg.group<almost::LinkComponent, almost::LinkIndexComponent>();
+    auto triangleGroup = reg.group<almost::TriangleComponent, almost::TriangleIndexComponent>();
 
     almost::StartFrame(windowData, rendererData);
     reg.ctx<almost::MeshRendererData>().verticesCount = 0;
@@ -67,12 +69,13 @@ int main(int argsCount, char **args)
     }
 
     {
-      almost::ProcessPhysics(particleGroup, linkGroup, physicsData, rendererData.inFlightQueue->GetCpuProfiler());
+      almost::ProcessPhysics(particleGroup, linkGroup, triangleGroup, physicsData, rendererData.inFlightQueue->GetCpuProfiler());
     }
 
     {
       auto submitTask = rendererData.inFlightQueue->GetCpuProfiler().StartScopedTask("Submit", legit::Colors::turqoise);
 
+      almost::SubmitTriangles(particleGroup, triangleGroup, physicsData, meshRendererData);
       almost::SubmitLinks(particleGroup, linkGroup, physicsData, meshRendererData);
       almost::SubmitParticles(particleGroup, physicsData, meshRendererData);
       almost::RenderFullscreen(windowData, fullscreenRendererData, rendererData, cameraData);

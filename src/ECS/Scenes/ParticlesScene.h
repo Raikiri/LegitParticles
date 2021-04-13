@@ -49,6 +49,43 @@ entt::entity CreateLink(entt::registry& reg, entt::entity particle0, entt::entit
   return linkEntity;
 }
 
+struct TriangleTensorData
+{
+  almost::StaticTensor<glm::vec2, almost::StrainDynamics::ParticleDim> worldPositions;
+  almost::StaticTensor<float, almost::StrainDynamics::ParticleDim> invMasses;
+};
+TriangleTensorData MakeTriangleTensorData(entt::registry& reg, std::array<entt::entity, 3> particleEntities)
+{
+  TriangleTensorData data;
+  for (auto m : almost::StrainDynamics::ParticleDim())
+  {
+    data.worldPositions.Get(m) = reg.get<almost::ParticleComponent>(particleEntities[m.value]).pos;
+    data.invMasses.Get(m) = reg.get<almost::MassComponent>(particleEntities[m.value]).invMass;
+  }
+  return data;
+}
+
+entt::entity CreateTriangle(entt::registry& reg, entt::entity particle0, entt::entity particle1, entt::entity particle2)
+{
+  entt::entity triangleEntity = reg.create();
+
+  almost::TriangleComponent triangleComponent;
+  triangleComponent.entities[0] = particle0;
+  triangleComponent.entities[1] = particle1;
+  triangleComponent.entities[2] = particle2;
+  TriangleTensorData data = MakeTriangleTensorData(reg, { particle0 , particle1, particle2});
+  triangleComponent.uvFromRef = almost::StrainDynamics::BuildUvFromRefMatrix(data.worldPositions);
+  reg.emplace<almost::TriangleComponent>(triangleEntity, triangleComponent);
+
+  almost::TriangleIndexComponent triangleIndexComponent;
+  triangleIndexComponent.indices[0] = -1;
+  triangleIndexComponent.indices[1] = -1;
+  triangleIndexComponent.indices[2] = -1;
+  reg.emplace<almost::TriangleIndexComponent>(triangleEntity, triangleIndexComponent);
+
+  return triangleEntity;
+}
+
 void CreateGround(entt::registry& reg)
 {
   reg.group<almost::ParticleComponent, almost::ParticleIndexComponent>();
@@ -77,6 +114,7 @@ void CreateClothPhysicsMesh(entt::registry& reg)
 
   reg.group<almost::LinkComponent, almost::LinkIndexComponent>();
   std::vector<entt::entity> linkEntities;
+  std::vector<entt::entity> triangleEntities;
   //particleLinks.resize((count.x - 1) * (count.y - 1));
   for (index.y = 0; index.y < count.y; index.y++)
   {
@@ -89,11 +127,23 @@ void CreateClothPhysicsMesh(entt::registry& reg)
 
         linkEntities.push_back(CreateLink(reg, currEntity, nextEntity));
       }
+
       if (index.y + 1 < count.y)
       {
         entt::entity nextEntity = particleEntities[index.x + (index.y + 1) * count.x];
 
         linkEntities.push_back(CreateLink(reg, currEntity, nextEntity));
+      }
+
+      if (index.x + 1 < count.x && index.y + 1 < count.y)
+      {
+        entt::entity e00 = particleEntities[index.x + index.y * count.x];
+        entt::entity e10 = particleEntities[index.x + 1 + index.y * count.x];
+        entt::entity e11 = particleEntities[index.x + 1 + (index.y + 1) * count.x];
+        entt::entity e01 = particleEntities[index.x + (index.y + 1) * count.x];
+
+        triangleEntities.push_back(CreateTriangle(reg, e00, e10, e11));
+        triangleEntities.push_back(CreateTriangle(reg, e00, e11, e01));
       }
     }
   }

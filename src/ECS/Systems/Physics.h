@@ -6,6 +6,7 @@
 //#include "../Context/MeshRendererData.h"
 #include "../Components/ParticleComponent.h"
 #include "../Components/LinkComponent.h"
+#include "../Components/TriangleComponent.h"
 #include <entity\registry.hpp>
 #include "../../Utils/GroupArg.h"
 #include "../../Maths/StackStorage.h"
@@ -23,6 +24,7 @@ namespace almost
 
   using ParticleGroup = entt::group_type<almost::ParticleComponent, almost::ParticleIndexComponent, almost::MassComponent, almost::DefPosComponent>;
   using LinkGroup = entt::group_type<almost::LinkComponent, almost::LinkIndexComponent>;
+  using TriangleGroup = entt::group_type<almost::TriangleComponent, almost::TriangleIndexComponent>;
 
   void ProcessPhysicsControls(
     WindowData& windowData,
@@ -34,6 +36,7 @@ namespace almost
   void ProcessPhysics(
     ParticleGroup particles,
     LinkGroup links,
+    TriangleGroup triangles,
     almost::PhysicsData& physicsData,
     legit::CpuProfiler& profiler);
 
@@ -44,6 +47,11 @@ namespace almost
   void SubmitLinks(
     ParticleGroup& particles,
     LinkGroup& links,
+    almost::PhysicsData& physicsData,
+    almost::MeshRendererData& meshRendererData);
+  void SubmitTriangles(
+    ParticleGroup& particles,
+    TriangleGroup& triangles,
     almost::PhysicsData& physicsData,
     almost::MeshRendererData& meshRendererData);
 }

@@ -1,3 +1,6 @@
+#pragma once
+#include <vector>
+
 #define INLINE __forceinline
 
 
@@ -13,8 +16,8 @@ namespace almost
       this->value = other.value;
       this->dim = other.dim;
     }*/
-    Index(DimType _dim, size_t _value) :
-      dim(_dim), value(_value)
+    Index(size_t _value) :
+      value(_value)
     {
     }
     INLINE SelfType operator =(size_t value)
@@ -30,137 +33,12 @@ namespace almost
     {
       return *this;
     }
-    INLINE bool operator != (Index &other)
+    INLINE bool operator != (const Index &other)
     {
       return value != other.value;
     }
     size_t value;
-    DimType dim;
   };
-
-  template<typename DimType>
-  Index<DimType> MakeIndex(DimType dim, size_t value = 0)
-  {
-    return Index<DimType>(dim, value);
-  }
-
-  template<class ...>
-  struct CombinedIndex;
-
-  template<class IndexType>
-  struct CombinedIndex<IndexType>
-  {
-    using SelfType = CombinedIndex<IndexType>;
-    CombinedIndex(IndexType &index) : index(index)
-    {
-      linearOffset = index.value;
-      stride = index.dim.size;
-      carry = 0;
-    }
-    INLINE SelfType &operator++()
-    {
-      linearOffset++;
-      index.value++;
-      carry = (index.value >= index.dim.size);
-      index.value = carry ? 0 : index.value;
-      return *this;
-    }
-    INLINE size_t GetLinearOffset() const
-    {
-      return linearOffset;
-    }
-
-    INLINE SelfType begin()
-    {
-      Init();
-      return *this;
-    }
-    INLINE SelfType end()
-    {
-      return *this;
-    }
-    INLINE SelfType &operator *()
-    {
-      return *this;
-    }
-    INLINE bool operator != (const SelfType &other)
-    {
-      return carry == 0; //just used for iterating, not actual comparison
-    }
-  protected:
-    void Init()
-    {
-      index.value = 0;
-    }
-    IndexType &index;
-    size_t carry;
-    size_t linearOffset;
-    size_t stride;
-  };
-
-  /*template<class ...IndexTypes>
-  CombinedIndex<IndexTypes...> CreateStaticIndex();*/
-
-  template<class IndexType, class ...IndexTypes>
-  struct CombinedIndex<IndexType, IndexTypes...> : public CombinedIndex<IndexTypes...>
-  {
-    using ParentType = CombinedIndex<IndexTypes...>;
-    using SelfType = CombinedIndex<IndexType, IndexTypes...>;
-
-    CombinedIndex(IndexType &index, IndexTypes&... indices) : index(index), ParentType(indices...)
-    {
-      this->linearOffset += this->ParentType::stride * index.value;
-      this->stride *= index.dim.size; 
-      this->carry = 0;
-    }
-    INLINE SelfType &operator++()
-    {
-      ParentType::operator++();
-      index.value += this->ParentType::carry;
-      carry = (index.value >= index.dim.size);
-      index.value = carry ? 0 : index.value;
-      return *this;
-    }
-    constexpr size_t GetSizeStatic()
-    {
-      return IndexType::DimType::size * ParentType::GetSizeStatic();;
-    }
-    size_t GetSize()
-    {
-      return index.dim.size * this->ParentType::GetSize();
-    }
-    INLINE SelfType &begin()
-    {
-      Init();
-      return *this;
-    }
-    INLINE SelfType &end()
-    {
-      return *this;
-    }
-    INLINE SelfType &operator *()
-    {
-      return *this;
-    }
-    INLINE bool operator != (const SelfType &other)
-    {
-      return carry == 0; //just used for iterating, not actual comparison
-    }
-  protected:
-    void Init()
-    {
-      index.value = 0;
-      ParentType::Init();
-    }
-    IndexType &index;
-    size_t carry;
-  };
-  
-  template<typename ...IndexTypes>
-  CombinedIndex<IndexTypes...> MakeCombinedIndex(IndexTypes&...indices)
-  {
-    return CombinedIndex<IndexTypes...>(indices...);
-  }
 
   template<typename ...DimTypes>
   struct Space;
@@ -190,7 +68,7 @@ namespace almost
   {
     using SelfType = Space<DimType, DimTypes...>;
     using ParentType = Space<DimTypes...>;
-    
+
     Space(DimType dim, DimTypes... dims) : dim(dim), ParentType(dims...)
     {
     }
@@ -206,28 +84,27 @@ namespace almost
     DimType dim;
   };
 
-
   template<typename IndexType>
-  constexpr size_t GetStrideStatic(IndexType index)
+  constexpr INLINE size_t GetStrideStatic(const IndexType &)
   {
     return IndexType::DimType::size;
   }
 
   template<typename IndexType, typename ...IndexTypes>
-  constexpr size_t GetStrideStatic(IndexType index, IndexTypes...indices)
+  constexpr INLINE size_t GetStrideStatic(const IndexType &, const IndexTypes &...)
   {
-    return IndexType::DimType::size * GetStrideStatic<IndexTypes...>(indices);
+    return IndexType::DimType::size * GetStrideStatic<IndexTypes...>();
   }
     
-
+  
   template<class IndexType>
-  constexpr size_t GetLinearOffsetStatic(IndexType index)
+  constexpr INLINE size_t GetLinearOffsetStatic(const IndexType& index)
   {
     return index.value;
   }
     
-  template<class IndexType, class ...IndexTypes>
-  constexpr size_t GetLinearOffsetStatic(IndexType index, IndexTypes ...indices)
+  template<class IndexType, class ...IndexTypes, typename = void>
+  constexpr INLINE size_t GetLinearOffsetStatic(const IndexType &index, const IndexTypes& ...indices)
   {
     return index.value * GetStrideStatic<IndexTypes...>(indices...) + GetLinearOffsetStatic<IndexTypes...>(indices...);
   }
@@ -253,12 +130,16 @@ namespace almost
   template<typename ValueTypeT, typename ...DimTypes>
   struct StaticTensor
   {
-    using CombinedIndexType = CombinedIndex<Index<DimTypes>...>;
     using SpaceType = Space<DimTypes...>;
     using ValueType = ValueTypeT;
 
     template<typename ...IndexTypes>
-    INLINE ValueType &Get(Index<DimTypes> ...indices)
+    INLINE ValueType &Get(const Index<DimTypes> &...indices)
+    {
+      return data[GetLinearOffsetStatic<IndexTypes...>(indices...)];
+    }
+    template<typename ...IndexTypes>
+    INLINE const ValueType& Get(const Index<DimTypes> &...indices) const
     {
       return data[GetLinearOffsetStatic<IndexTypes...>(indices...)];
     }
@@ -268,7 +149,6 @@ namespace almost
   template<typename ValueTypeT, typename ...DimTypes>
   struct DynamicTensor
   {
-    using CombinedIndexType = CombinedIndex<Index<DimTypes>...>;
     using SpaceType = Space<DimTypes...>;
     using ValueType = ValueTypeT;
 
@@ -284,6 +164,13 @@ namespace almost
       return data[GetLinearOffset<IndexTypes...>(stride, indices...)];
     }
 
+    template<typename ...IndexTypes>
+    INLINE const ValueType& Get(Index<DimTypes> ...indices) const
+    {
+      size_t stride;
+      return data[GetLinearOffset<IndexTypes...>(stride, indices...)];
+    }
+
     std::vector<ValueType> data;
   };
 
@@ -293,25 +180,25 @@ namespace almost
     return DynamicTensor<ValueType, DimTypes...>(dimTypes...);
   }
   template<typename ValueType, typename ...DimTypes>
-  StaticTensor<ValueType, DimTypes...> MakeStaticTensor()
+  constexpr StaticTensor<ValueType, DimTypes...> MakeStaticTensor()
   {
     return StaticTensor<ValueType, DimTypes...>();
   }
 
 
   template<typename DimensionName, size_t sizeT>
-  struct StaticDimension : public DimensionName
+  struct StaticDimension
   {
     using SelfType = StaticDimension<DimensionName, sizeT>;
     using IndexType = Index<SelfType>;
     const static size_t size = sizeT;
-    IndexType begin()
+    constexpr IndexType begin()
     {
-      return IndexType(*this, 0);
+      return IndexType(0);
     }
-    IndexType end()
+    constexpr IndexType end()
     {
-      return IndexType(*this, sizeT);
+      return IndexType(sizeT);
     }
   };
 
@@ -337,3 +224,30 @@ namespace almost
   };
 }
 #undef INLINE
+
+/*void UsageSample()
+{
+    struct Values {};
+    using ValuesDim = almost::StaticDimension<Values, 3>;
+    struct NullspaceVectors {};
+    using NullspaceVectorsDim = almost::StaticDimension<NullspaceVectors, 7>;
+    struct Basis {};
+    using BasisDim = almost::DynamicDimension<Basis>;
+
+    ValuesDim valuesDim;
+    NullspaceVectorsDim nullspaceDim;
+    BasisDim basisDim(1); //size specified in runtime
+
+
+    auto valueToNullspace = almost::MakeStaticTensor<float, ValuesDim, NullspaceVectorsDim>(); //on stack, static array
+    auto nullspaceToBasis = almost::MakeDynamicTensor<float>(nullspaceDim, basisDim); //basisDim is dynamic, allocate on heap
+    auto valuesInBasis = almost::MakeDynamicTensor<float>(valuesDim, basisDim); //basisDim is dynamic, allocate on heap
+    for (auto i : valuesDim)
+      for (auto k : basisDim)
+        valuesInBasis.Get(i, k) = (i.value == k.value) ? 1.0f : -42.0f;
+
+    for (auto i : valuesDim)
+      for (auto j : nullspaceDim)
+        for (auto k : basisDim)
+          valuesInBasis.Get(i, k) += valueToNullspace.Get(i, j) * nullspaceToBasis.Get(j, k);
+}*/
