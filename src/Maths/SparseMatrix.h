@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <assert.h>
 #include <vector>
+#include <iterator>
+
 namespace almost
 {
   template<typename T>

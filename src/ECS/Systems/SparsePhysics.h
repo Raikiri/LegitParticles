@@ -104,7 +104,7 @@ namespace almost
 
 
 
-  void BuildSparseJacobian(ParticleGroup particles, LinkGroup links,
+  void BuildSparseJacobian(ParticleGroup::Type particles, LinkGroup::Type links,
     PhysicsData::JacobianMatrix& jacobianMatrix, float* positionRightSideVector, float* velocityRightSideVector, float* accelerationRightSide)
   {
     jacobianMatrix.BuildEmpty(PhysicsData::JointDimension{ links.size() }, PhysicsData::ParticleDimension{ particles.size() });
@@ -153,7 +153,7 @@ namespace almost
     assert(jacobianMatrix.CheckSortedIndices());
   }
 
-  void BuildSparseMassMatrix(ParticleGroup particles, PhysicsData::MassMatrix& massMatrix)
+  void BuildSparseMassMatrix(ParticleGroup::Type particles, PhysicsData::MassMatrix& massMatrix)
   {
     massMatrix.BuildEmpty(PhysicsData::ParticleDimension{ particles.size() }, PhysicsData::ParticleDimension{ particles.size() });
     size_t particlesCount = particles.size();
@@ -179,7 +179,7 @@ namespace almost
       sparseVector.AppendTerm(0, value);
     }
   }
-  void ApplyAccelerationDeltas(ParticleGroup particles, const PhysicsData::DeltaMatrix& deltaMatrix)
+  void ApplyAccelerationDeltas(ParticleGroup::Type particles, const PhysicsData::DeltaMatrix& deltaMatrix)
   {
     size_t rowsCount = deltaMatrix.GetRowsCount();
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
@@ -195,7 +195,7 @@ namespace almost
       particleComponents[rowIndex].acceleration += delta;
     }
   }
-  void ApplyVelocityDeltas(ParticleGroup particles, const PhysicsData::DeltaMatrix& deltaMatrix)
+  void ApplyVelocityDeltas(ParticleGroup::Type particles, const PhysicsData::DeltaMatrix& deltaMatrix)
   {
     size_t rowsCount = deltaMatrix.GetRowsCount();
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
@@ -216,7 +216,7 @@ namespace almost
     }
   }
 
-  void ApplyPositionDeltas(ParticleGroup particles, const PhysicsData::DeltaMatrix& deltaMatrix)
+  void ApplyPositionDeltas(ParticleGroup::Type particles, const PhysicsData::DeltaMatrix& deltaMatrix)
   {
     size_t rowsCount = deltaMatrix.GetRowsCount();
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
@@ -233,7 +233,7 @@ namespace almost
     }
   }
 
-  void ApplyPositionDenseDeltas(ParticleGroup particles, const glm::vec2* deltaVector)
+  void ApplyPositionDenseDeltas(ParticleGroup::Type particles, const glm::vec2* deltaVector)
   {
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
     MassComponent* massComponents = particles.raw<MassComponent>();
@@ -244,7 +244,7 @@ namespace almost
       particleComponents[particleIndex].pos += delta;
     }
   }
-  void ApplyVelocityDenseDeltas(ParticleGroup particles, const glm::vec2* deltaVector)
+  void ApplyVelocityDenseDeltas(ParticleGroup::Type particles, const glm::vec2* deltaVector)
   {
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
     MassComponent* massComponents = particles.raw<MassComponent>();
@@ -281,7 +281,7 @@ namespace almost
     }
   }
 
-  void SolveLinksMultigrid(ParticleGroup particles, LinkGroup links, legit::CpuProfiler& profiler)
+  void SolveLinksMultigrid(ParticleGroup::Type particles, LinkGroup::Type links, legit::CpuProfiler& profiler)
   {
     auto positionRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
     auto velocityRightSideHandle = stackStorage.GetHandle< std::vector<float> >();
@@ -447,7 +447,7 @@ namespace almost
   }
   //https://www.cs.cmu.edu/~baraff/papers/sig98.pdf
   //Large Steps in Cloth Simulation David Baraff Andrew Witkin
-  void BuildConstraintMatrices(ParticleGroup particles, LinkGroup links,
+  void BuildConstraintMatrices(ParticleGroup::Type particles, LinkGroup::Type links,
     PhysicsData::ParticleTensorMatrix& constraintDerivatives, glm::vec2* constraintDeltas)
   {
     glm::vec2 gravity = glm::vec2(0.0f, -10000.0f);
@@ -507,7 +507,7 @@ namespace almost
     PhysicsData::ParticleTensorMatrix::SortElements(elements.data(), elements.size());
     constraintDerivatives.BuildFromSortedElements(elements.data(), elements.size(), PhysicsData::ParticleDimension{ particles.size() }, PhysicsData::ParticleDimension{ particles.size() });
   }
-  void BuildParticleVelocities(ParticleGroup particles, PhysicsData::DeltaMatrix& particleVelocities)
+  void BuildParticleVelocities(ParticleGroup::Type particles, PhysicsData::DeltaMatrix& particleVelocities)
   {
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
 
@@ -522,7 +522,7 @@ namespace almost
   }
 
   //try implicit position-based
-  void SolveLinksImplicitMultigrid(ParticleGroup particles, LinkGroup links, float timeStep, legit::CpuProfiler& profiler)
+  void SolveLinksImplicitMultigrid(ParticleGroup::Type particles, LinkGroup::Type links, float timeStep, legit::CpuProfiler& profiler)
   {
     PhysicsData::ParticleTensorMatrix constraintDerivatives;
     PhysicsData::ParticleTensorMatrix identity;
@@ -631,7 +631,7 @@ namespace almost
     float depth;
   };
 
-  void BuildSparseJacobian(ParticleGroup particles, Collision* collisions, size_t collisionsCount,
+  void BuildSparseJacobian(ParticleGroup::Type particles, Collision* collisions, size_t collisionsCount,
     PhysicsData::JacobianMatrix& jacobianMatrix, float* positionRightSideVector, float* velocityRightSideVector, float* accelerationRightSide)
   {
     jacobianMatrix.BuildEmpty(PhysicsData::JointDimension{ collisionsCount }, PhysicsData::ParticleDimension{ particles.size() });
@@ -678,7 +678,7 @@ namespace almost
 
 
 
-  void SolveCollisions(ParticleGroup particles, legit::CpuProfiler& profiler)
+  void SolveCollisions(ParticleGroup::Type particles, legit::CpuProfiler& profiler)
   {
     auto* particleComponents = particles.raw<ParticleComponent>();
     float radius0 = 5.0f;

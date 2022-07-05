@@ -11,6 +11,7 @@ namespace almost
     glfwGetCursorPos(windowData.window, &inputData.mousePos.x, &inputData.mousePos.y);
     inputData.prevMousePos = inputData.mousePos;
     inputData.worldMousePos = glm::vec2(0.0f);
+    inputData.prevWorldMousePos = glm::vec2(0.0f);
     inputData.isWindowClosed = false;
     return inputData;
   }

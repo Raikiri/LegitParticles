@@ -11,7 +11,8 @@ namespace legit
   // it doesn�t make sense to mask access bits that correspond to reads (e.g. eShaderRead) in the source access mask.
   // Reading from memory from different stages without a write issued in between is well-defined and requires no barrier
 
-
+  //we can only consider 1 previous pass that used the same image because that pass could not execute unless memory of this texture was made available before it.
+  //since the purpose of the left side of the barrier is to only make memory available, it should only be done if the previous pass writes this memory, otherwise it's already available
 
   enum struct QueueFamilyTypes
   {
@@ -56,7 +57,7 @@ namespace legit
     {
       case ImageUsageTypes::GraphicsShaderRead:
       {
-        accessPattern.stage = vk::PipelineStageFlagBits::eVertexShader;
+        accessPattern.stage = vk::PipelineStageFlagBits::eFragmentShader;
         accessPattern.accessMask = vk::AccessFlags();
         accessPattern.layout = vk::ImageLayout::eShaderReadOnlyOptimal;
         accessPattern.queueFamilyType = QueueFamilyTypes::Graphics;
@@ -150,7 +151,7 @@ namespace legit
       case ImageUsageTypes::GraphicsShaderReadWrite:
       {
         accessPattern.stage = vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eFragmentShader;
-        accessPattern.accessMask = vk::AccessFlagBits::eShaderWrite;
+        accessPattern.accessMask = vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
         accessPattern.layout = vk::ImageLayout::eGeneral;
         accessPattern.queueFamilyType = QueueFamilyTypes::Graphics;
       }break;
@@ -356,6 +357,7 @@ namespace legit
 
   static bool IsBufferBarrierNeeded(BufferUsageTypes srcUsageType, BufferUsageTypes dstUsageType)
   {
+    //could be smarter
     return true;
   }
 }

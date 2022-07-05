@@ -22,36 +22,42 @@ namespace almost
   struct CameraData;
   struct MeshRendererData;
 
-  using ParticleGroup = entt::group_type<almost::ParticleComponent, almost::ParticleIndexComponent, almost::MassComponent, almost::DefPosComponent>;
-  using LinkGroup = entt::group_type<almost::LinkComponent, almost::LinkIndexComponent>;
-  using TriangleGroup = entt::group_type<almost::TriangleComponent, almost::TriangleIndexComponent>;
+  template<typename ...Components>
+  struct Group
+  {
+    using Type = entt::group_type<Components...>;
+    static Type Get(entt::registry &reg)
+    {
+      return reg.group<Components...>();
+    }
+  };
+  using ParticleGroup = Group<almost::ParticleComponent, almost::ParticleIndexComponent, almost::MassComponent, almost::DefPosComponent, almost::CoarseMultigridComponent, almost::FineMultigridComponent>;
+  using LinkGroup = Group<almost::LinkComponent, almost::LinkIndexComponent>;
+  using TriangleGroup = Group<almost::TriangleComponent, almost::TriangleIndexComponent>;
 
   void ProcessPhysicsControls(
     WindowData& windowData,
-    ParticleGroup particles,
+    ParticleGroup::Type particles,
     InputData& inputData,
     CameraData& cameraData);
   
 
   void ProcessPhysics(
-    ParticleGroup particles,
-    LinkGroup links,
-    TriangleGroup triangles,
-    almost::PhysicsData& physicsData,
+    std::vector<entt::registry> &regLayers,
     legit::CpuProfiler& profiler);
 
   void SubmitParticles(
-    ParticleGroup& particles,
+    ParticleGroup::Type particles,
     almost::PhysicsData& physicsData,
     almost::MeshRendererData& meshRendererData);
   void SubmitLinks(
-    ParticleGroup& particles,
-    LinkGroup& links,
+    ParticleGroup::Type particles,
+    LinkGroup::Type links,
     almost::PhysicsData& physicsData,
     almost::MeshRendererData& meshRendererData);
   void SubmitTriangles(
-    ParticleGroup& particles,
-    TriangleGroup& triangles,
+    ParticleGroup::Type particles,
+    TriangleGroup::Type triangles,
     almost::PhysicsData& physicsData,
     almost::MeshRendererData& meshRendererData);
 }

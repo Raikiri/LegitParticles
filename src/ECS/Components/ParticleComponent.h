@@ -1,5 +1,8 @@
 #pragma once
+#include <entity\registry.hpp>
 #include "../../Utils/GlmInclude.h"
+
+
 #define POSITION_BASED
 namespace almost
 {
@@ -12,6 +15,21 @@ namespace almost
       glm::vec2 velocity;
     #endif
     glm::vec2 acceleration;
+  };
+
+  struct Influence
+  {
+    entt::entity particleEntity;
+    float weight;
+  };
+  struct CoarseMultigridComponent
+  {
+    std::vector<Influence> influences;
+  };
+
+  struct FineMultigridComponent
+  {
+    std::vector<Influence> influences;
   };
   struct ParticleIndexComponent
   {

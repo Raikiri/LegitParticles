@@ -54,6 +54,7 @@ namespace almost
 
       glm::vec2 screenPos = glm::vec2(inputData.mousePos) / glm::vec2(extent.width, extent.height);
       screenPos.y = 1.0f - screenPos.y;
+      inputData.prevWorldMousePos = inputData.worldMousePos;
       inputData.worldMousePos = Unproject(cameraData.pos, cameraData.ang, cameraData.fov, screenPos);
     }
 

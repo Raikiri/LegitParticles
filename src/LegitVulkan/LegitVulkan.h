@@ -32,9 +32,9 @@
 #include "DescriptorSetCache.h"
 #include "PipelineCache.h"
 #include "RenderPassCache.h"
-#include "RenderGraph.h"
-#include "Core.h"
 
+#include "Core.h"
+#include "RenderGraph.h"
 
 #include "PresentQueue.h"
 

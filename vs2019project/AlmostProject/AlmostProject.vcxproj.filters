@@ -43,6 +43,15 @@
     <Filter Include="Maths\StrainConstraints">
       <UniqueIdentifier>{90184a79-e7cc-4405-8a8f-432a6141ef84}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Maths\SpriterAnimations">
+      <UniqueIdentifier>{21794703-d374-48fb-ad69-ce01c05c88d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Maths\RectPacker">
+      <UniqueIdentifier>{613f6463-d43b-40a8-bed2-a9f8eb39c8bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lodepng">
+      <UniqueIdentifier>{c709afe7-f3f1-4fb8-a670-385082a0d613}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\dependencies\spirv-cross\spirv_cfg.cpp">
@@ -99,6 +108,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Maths\StrainConstraints\StrainConstraints.cpp">
       <Filter>Maths\StrainConstraints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dependencies\lodepng\lodepng.cpp">
+      <Filter>lodepng</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -327,7 +339,7 @@
     <ClInclude Include="..\..\src\Maths\StackStorage.h">
       <Filter>Maths</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ECS\Scenes\ParticlesScene.h">
+    <ClInclude Include="..\..\src\ECS\Scenes\MultigridClothScene.h">
       <Filter>ECS\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Maths\StrainConstraints\StrainConstraints.h">
@@ -335,6 +347,33 @@
     </ClInclude>
     <ClInclude Include="..\..\src\ECS\Components\TriangleComponent.h">
       <Filter>ECS\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\SkeletalAnimation.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\AnimationData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\SpriterAnimations\SpriterImporter.h">
+      <Filter>Maths\SpriterAnimations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Maths\RectPacker\RectPacker.h">
+      <Filter>Maths\RectPacker</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dependencies\lodepng\lodepng.h">
+      <Filter>lodepng</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\ShaderTestbedRendererData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\ShaderTestbedRenderer.h">
+      <Filter>ECS\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Context\PhysicsAnimationData.h">
+      <Filter>ECS\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ECS\Systems\PhysicsAnimation.h">
+      <Filter>ECS\Systems</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
