@@ -27,10 +27,11 @@ namespace legit
       return swapchain.get();
     }
   private:
-    Swapchain(vk::Instance instance, vk::PhysicalDevice physicalDevice, vk::Device logicalDevice, WindowDesc windowDesc, uint32_t imagesCount, QueueFamilyIndices queueFamilyIndices, vk::PresentModeKHR preferredMode)
+    Swapchain(vk::Instance instance, vk::PhysicalDevice physicalDevice, vk::Device logicalDevice, WindowDesc windowDesc, glm::uvec2 defaultSize, uint32_t imagesCount, QueueFamilyIndices queueFamilyIndices, vk::PresentModeKHR preferredMode)
     {
       this->logicalDevice = logicalDevice;
-      this->surface = legit::CreateWin32Surface(instance, windowDesc);
+      this->surface = legit::CreateSurface(instance, windowDesc);
+      
       if (queueFamilyIndices.presentFamilyIndex == uint32_t(-1) || !physicalDevice.getSurfaceSupportKHR(queueFamilyIndices.presentFamilyIndex, surface.get()))
         throw std::runtime_error("Window surface is incompatible with device");
 
@@ -38,7 +39,7 @@ namespace legit
 
       this->surfaceFormat = FindSwapchainSurfaceFormat(surfaceDetails.formats);
       this->presentMode = FindSwapchainPresentMode(surfaceDetails.presentModes, preferredMode);
-      this->extent = FindSwapchainExtent(surfaceDetails.capabilities, vk::Extent2D(100, 100));
+      this->extent = FindSwapchainExtent(surfaceDetails.capabilities, vk::Extent2D(defaultSize.x, defaultSize.y));
 
       uint32_t imageCount = std::max(surfaceDetails.capabilities.minImageCount, imagesCount);
       if (surfaceDetails.capabilities.maxImageCount > 0 && imageCount > surfaceDetails.capabilities.maxImageCount)
@@ -148,11 +149,11 @@ namespace legit
       }
     }
 
-    SurfaceDetails surfaceDetails;
     vk::Device logicalDevice;
     vk::SurfaceFormatKHR surfaceFormat;
     vk::PresentModeKHR presentMode;
     vk::Extent2D extent;
+    
     struct Image
     {
       std::unique_ptr<legit::ImageData> imageData;
@@ -160,10 +161,9 @@ namespace legit
     };
     std::vector<Image> images;
 
-
     vk::UniqueSurfaceKHR surface;
     vk::UniqueSwapchainKHR swapchain;
-
+    SurfaceDetails surfaceDetails;
 
     friend class Core;
   };

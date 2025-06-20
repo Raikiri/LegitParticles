@@ -221,6 +221,9 @@ namespace legit
   {
     switch(format)
     {
+      case vk::Format::eR32Uint:
+        return sizeof(glm::uint);
+      break;
       case vk::Format::eR8G8B8A8Unorm:
         return 4;
       break;
@@ -230,6 +233,7 @@ namespace legit
       case vk::Format::eR16G16B16A16Sfloat:
         return 2 * sizeof(float);
       break;
+      default: {assert(!!"Forgot to handle this one");}
     }
     assert(0);
     return -1;

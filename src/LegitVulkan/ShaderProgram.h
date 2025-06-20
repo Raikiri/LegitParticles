@@ -131,7 +131,7 @@ namespace legit
     {
       bool operator<(const UniformBufferData &other) const
       {
-        return std::tie(name, shaderBindingIndex, size) < std::tie(other.name, other.shaderBindingIndex, other.size);
+        return std::tie(name, shaderBindingIndex, size, stageFlags) < std::tie(other.name, other.shaderBindingIndex, other.size, other.stageFlags);
       }
 
       std::string name;
@@ -670,7 +670,7 @@ namespace legit
       std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
       if (!file.is_open())
-        throw std::runtime_error("failed to open file!");
+        throw std::runtime_error("failed to open file + " + filename);
 
       size_t fileSize = (size_t)file.tellg();
       std::vector<uint32_t> bytecode(fileSize / sizeof(uint32_t));
@@ -706,7 +706,7 @@ namespace legit
       localSize = glm::uvec3(0);
       spirv_cross::Compiler compiler(bytecode.data(), bytecode.size());
 
-      std::vector<spirv_cross::EntryPoint> entryPoints = compiler.get_entry_points_and_stages();
+      std::vector<spirv_cross::EntryPoint> entryPoints(compiler.get_entry_points_and_stages());
       assert(entryPoints.size() == 1);
       vk::ShaderStageFlags stageFlags;
       switch (entryPoints[0].execution_model)
@@ -726,6 +726,7 @@ namespace legit
           localSize.y = compiler.get_execution_mode_argument(spv::ExecutionMode::ExecutionModeLocalSize, 1);
           localSize.z = compiler.get_execution_mode_argument(spv::ExecutionMode::ExecutionModeLocalSize, 2);
         }break;
+        default:{}
       }
 
       spirv_cross::ShaderResources resources = compiler.get_shader_resources();

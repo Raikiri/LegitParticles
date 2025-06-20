@@ -3,17 +3,37 @@
 #include "../Context/MeshRendererData.h"
 namespace almost
 {
+  legit::WindowDesc GetGlfwWindowDesc(GLFWwindow *window)
+  {
+    legit::WindowDesc windowDesc = {};
+    #if defined(WIN32)
+      windowDesc.hInstance = GetModuleHandle(NULL);
+      windowDesc.hWnd = glfwGetWin32Window(window);
+    #else
+      windowDesc.display = glfwGetWaylandDisplay();
+      windowDesc.surface = glfwGetWaylandWindow(window);
+    #endif
+    return windowDesc;
+  }
+
+  glm::uvec2 GetGlfwWindowClientSize(GLFWwindow *window)
+  {
+    int width = 0, height = 0;
+    glfwGetWindowSize(window, &width, &height);
+    return {width, height};
+  }
 
   RendererData InitRenderer(almost::WindowData& windowData)
   {
     RendererData rendererData;
-    const char* glfwExtensions[] = { "VK_KHR_surface", "VK_KHR_win32_surface" };
-    uint32_t glfwExtensionCount = 2;
+    //const char* glfwExtensions[] = { "VK_KHR_surface", "VK_KHR_win32_surface" };
+    //uint32_t glfwExtensionCount = 2;
 
     rendererData.windowDesc = {};
-    rendererData.windowDesc.hInstance = GetModuleHandle(NULL);
-    rendererData.windowDesc.hWnd = glfwGetWin32Window(windowData.window);
+    rendererData.windowDesc = GetGlfwWindowDesc(windowData.window);
 
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     rendererData.core = std::make_unique<legit::Core>(glfwExtensions, glfwExtensionCount, &rendererData.windowDesc, true);
 
     rendererData.imguiRenderer = std::make_unique<ImGuiRenderer>(rendererData.core.get(), windowData.window);
@@ -31,7 +51,7 @@ namespace almost
       std::cout << "recreated\n";
       rendererData.core->ClearCaches();
       //core->GetRenderGraph()->Clear();
-      rendererData.inFlightQueue = std::unique_ptr<legit::InFlightQueue>(new legit::InFlightQueue(rendererData.core.get(), rendererData.windowDesc, 2, vk::PresentModeKHR::eMailbox));
+      rendererData.inFlightQueue = std::unique_ptr<legit::InFlightQueue>(new legit::InFlightQueue(rendererData.core.get(), rendererData.windowDesc, GetGlfwWindowClientSize(windowData.window), 2, vk::PresentModeKHR::eMailbox));
       rendererData.imguiRenderer->RecreateSwapchainResources(rendererData.inFlightQueue->GetImageSize(), rendererData.inFlightQueue->GetInFlightFramesCount());
 
       auto& imguiIO = ImGui::GetIO();
@@ -66,12 +86,12 @@ namespace almost
     //ImGui::ShowStyleEditor();
     //ImGui::ShowDemoWindow();
   }
-  void FinishFrame(almost::RendererData& rendererData)
+  void FinishFrame(const almost::WindowData& windowData, almost::RendererData& rendererData)
   {
     ImGui::EndFrame();
 
     ImGui::Render();
-    rendererData.imguiRenderer->RenderFrame(rendererData.frameInfo, ImGui::GetDrawData());
+    rendererData.imguiRenderer->RenderFrame(rendererData.frameInfo, windowData.window, ImGui::GetDrawData());
 
     try
     {

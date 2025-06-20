@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 
-#define INLINE __forceinline
-
+//#define INLINE __forceinline
+#define INLINE
 
 namespace almost
 {

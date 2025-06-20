@@ -2,7 +2,11 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
+#if defined(WIN32)
+  #define GLFW_EXPOSE_NATIVE_WIN32
+#else
+  #define GLFW_EXPOSE_NATIVE_WAYLAND
+#endif
 #include <GLFW/glfw3native.h>
 
 namespace almost

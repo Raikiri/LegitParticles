@@ -22,7 +22,6 @@ namespace almost
     using ResultType = glm::vec2;
     using ScalarType = float;
 
-    using ResultType = glm::vec2;
     static ResultType Mul(glm::vec2 val0, float val1)
     {
       return val0 * val1;

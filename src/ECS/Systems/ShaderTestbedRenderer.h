@@ -1,7 +1,7 @@
 #include "../Context/RendererData.h"
 #include "../Context/ShaderTestbedRendererData.h"
 #include "../Context/CameraData.h"
-#include "lodepng.h"
+//#include "lodepng.h"
 
 #include <memory>
 namespace almost

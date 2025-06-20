@@ -29,7 +29,7 @@ namespace legit
   class ImageCache
   {
   public:
-    ImageCache(vk::PhysicalDevice _physicalDevice, vk::Device _logicalDevice, vk::DispatchLoaderDynamic _loader) : physicalDevice(_physicalDevice), logicalDevice(_logicalDevice), loader(_loader)
+    ImageCache(vk::PhysicalDevice _physicalDevice, vk::Device _logicalDevice, vk::detail::DispatchLoaderDynamic _loader) : physicalDevice(_physicalDevice), logicalDevice(_logicalDevice), loader(_loader)
     {}
 
     struct ImageKey
@@ -82,7 +82,7 @@ namespace legit
     std::map<ImageKey, ImageCacheEntry> imageCache;
     vk::PhysicalDevice physicalDevice;
     vk::Device logicalDevice;
-    vk::DispatchLoaderDynamic loader;
+    vk::detail::DispatchLoaderDynamic loader;
   };
 
   class ImageViewCache
@@ -265,7 +265,7 @@ namespace legit
     };
 
   public:
-    RenderGraph(vk::PhysicalDevice _physicalDevice, vk::Device _logicalDevice, vk::DispatchLoaderDynamic _loader) :
+    RenderGraph(vk::PhysicalDevice _physicalDevice, vk::Device _logicalDevice, vk::detail::DispatchLoaderDynamic _loader) :
       physicalDevice(_physicalDevice),
       logicalDevice(_logicalDevice),
       loader(_loader),
@@ -725,6 +725,7 @@ namespace legit
       ImagePresentPassDesc &SetImage(ImageViewProxyId _presentImageViewProxyId)
       {
         this->presentImageViewProxyId = _presentImageViewProxyId;
+        return *this;
       }
       ImageViewProxyId presentImageViewProxyId;
     };
@@ -1007,7 +1008,7 @@ namespace legit
             for (auto dstBufferProxy : transferPassDesc.dstBufferProxies)
             {
               auto storageBuffer = GetResolvedBuffer(taskIndex, dstBufferProxy);
-              AddBufferBarriers(storageBuffer, BufferUsageTypes::TransferSrc, taskIndex, srcStage, dstStage, bufferBarriers);
+              AddBufferBarriers(storageBuffer, BufferUsageTypes::TransferDst, taskIndex, srcStage, dstStage, bufferBarriers);
             }
 
             if (imageBarriers.size() > 0 || bufferBarriers.size() > 0)
@@ -1189,6 +1190,7 @@ namespace legit
           if (ImageViewContainsSubresource(GetResolvedImageView(taskIndex, imagePresentDesc.presentImageViewProxyId), imageData, mipLevel, arrayLayer))
             return ImageUsageTypes::Present;
         }break;
+        default:{}
       }
       return ImageUsageTypes::None;
     }
@@ -1242,6 +1244,7 @@ namespace legit
               return BufferUsageTypes::TransferSrc;
           }
         }break;
+        default: {}
       }
       return BufferUsageTypes::None;
     }
@@ -1658,7 +1661,7 @@ namespace legit
 
     vk::Device logicalDevice;
     vk::PhysicalDevice physicalDevice;
-    vk::DispatchLoaderDynamic loader;
+    vk::detail::DispatchLoaderDynamic loader;
     size_t imageAllocations = 0;
   };
 

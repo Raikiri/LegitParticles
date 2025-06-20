@@ -60,6 +60,22 @@ namespace legit
       currSetInfo = nullptr;
     }
 
+    void *GetUniformBufferData(legit::DescriptorSetLayoutKey::UniformBufferId uniformBufferId, size_t size)
+    {
+      auto bufferInfo = currSetInfo->GetUniformBufferInfo(uniformBufferId);
+      assert(bufferInfo.size == size);
+      size_t totalOffset = currOffset + bufferInfo.offsetInSet;
+      assert(totalOffset + size <= currSize);
+      return ((char*)dstMemory + totalOffset);
+    }
+
+    void *GetUniformBufferData(std::string bufferName, size_t size)
+    {
+      auto bufferId = currSetInfo->GetUniformBufferId(bufferName);
+      assert(!(bufferId == legit::DescriptorSetLayoutKey::UniformBufferId()));
+      return GetUniformBufferData(bufferId, size);
+    }
+
     template<typename BufferType>
     BufferType *GetUniformBufferData(legit::DescriptorSetLayoutKey::UniformBufferId uniformBufferId)
     {

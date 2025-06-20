@@ -13,6 +13,7 @@ namespace legit
       isAttached = false;
     }
     UniqueHandle<HandleInfo, Factory> &operator = (UniqueHandle<HandleInfo, Factory> &other) = delete;
+    UniqueHandle<HandleInfo, Factory> &operator = (const UniqueHandle<HandleInfo, Factory> &other) = delete;
     UniqueHandle<HandleInfo, Factory> &operator = (UniqueHandle<HandleInfo, Factory> &&other)
     {
       if (isAttached)

@@ -1,5 +1,5 @@
 #pragma once
-#include "../../LegitVulkan/ProfilerTask.h"
+#include "../../LegitProfiler/ProfilerTask.h"
 #include "../../LegitVulkan/CpuProfiler.h"
 
 #include "../Context/PhysicsData.h"
@@ -7,7 +7,7 @@
 #include "../Components/ParticleComponent.h"
 #include "../Components/LinkComponent.h"
 #include "../Components/TriangleComponent.h"
-#include <entity\registry.hpp>
+#include <entity/registry.hpp>
 #include "../../Utils/GroupArg.h"
 #include "../../Maths/StackStorage.h"
 namespace almost

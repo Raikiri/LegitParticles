@@ -16,7 +16,7 @@ namespace legit
 
     this->instance = CreateInstance(resIntanceExtensions, validationLayers);
     //loader = vk::DispatchLoaderDynamic();
-    loader = vk::DispatchLoaderDynamic(instance.get(), vkGetInstanceProcAddr);
+    loader = vk::detail::DispatchLoaderDynamic(instance.get(), vkGetInstanceProcAddr);
 
     auto prop = vk::enumerateInstanceLayerProperties();
     
@@ -35,12 +35,15 @@ namespace legit
     {
       vk::UniqueSurfaceKHR compatibleSurface;
       if (compatibleWindowDesc)
-        compatibleSurface = CreateWin32Surface(instance.get(), *compatibleWindowDesc);
+      {
+        compatibleSurface = CreateSurface(instance.get(), *compatibleWindowDesc);
+      }
       this->queueFamilyIndices = FindQueueFamilyIndices(physicalDevice, compatibleSurface.get());
     }
     
     std::vector<const char*> deviceExtensions;
     deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    deviceExtensions.push_back("VK_EXT_shader_atomic_float");
     this->logicalDevice = CreateLogicalDevice(physicalDevice, queueFamilyIndices, deviceExtensions, validationLayers);
     this->graphicsQueue = GetDeviceQueue(logicalDevice.get(), queueFamilyIndices.graphicsFamilyIndex);
     this->presentQueue = GetDeviceQueue(logicalDevice.get(), queueFamilyIndices.presentFamilyIndex);
@@ -59,9 +62,17 @@ namespace legit
     this->descriptorSetCache->Clear();
     this->pipelineCache->Clear();
   }
-  std::unique_ptr<Swapchain> Core::CreateSwapchain(WindowDesc windowDesc, uint32_t imagesCount, vk::PresentModeKHR preferredMode)
+  std::unique_ptr<Swapchain> Core::CreateSwapchain(WindowDesc windowDesc, glm::uvec2 defaultSize, uint32_t imagesCount, vk::PresentModeKHR preferredMode)
   {
-    auto swapchain = std::unique_ptr<Swapchain>(new Swapchain(instance.get(), physicalDevice, logicalDevice.get(), windowDesc, imagesCount, queueFamilyIndices, preferredMode));
+    auto swapchain = std::unique_ptr<Swapchain>(new Swapchain(
+      instance.get(),
+      physicalDevice,
+      logicalDevice.get(),
+      windowDesc,
+      defaultSize,
+      imagesCount,
+      queueFamilyIndices,
+      preferredMode));
     return swapchain;
   }
     
@@ -159,7 +170,7 @@ namespace legit
     return vk::createInstanceUnique(instanceCreateInfo);
   }
 
-  vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> Core::CreateDebugUtilsMessenger(vk::Instance instance, PFN_vkDebugUtilsMessengerCallbackEXT debugCallback, vk::DispatchLoaderDynamic &loader)
+  vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::detail::DispatchLoaderDynamic> Core::CreateDebugUtilsMessenger(vk::Instance instance, vk::PFN_DebugUtilsMessengerCallbackEXT debugCallback, vk::detail::DispatchLoaderDynamic &loader)
   {
     auto messengerCreateInfo = vk::DebugUtilsMessengerCreateInfoEXT()
       .setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError/* | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo*/)
@@ -170,11 +181,12 @@ namespace legit
     return instance.createDebugUtilsMessengerEXTUnique(messengerCreateInfo, nullptr, loader);
   }
 
-  VKAPI_ATTR VkBool32 VKAPI_CALL Core::DebugMessageCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) 
+  
+  vk::Bool32 Core::DebugMessageCallback(
+    vk::DebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
+    vk::DebugUtilsMessageTypeFlagsEXT              messageTypes,
+    const vk::DebugUtilsMessengerCallbackDataEXT * pCallbackData,
+    void *pUserData )
   {
     std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
@@ -255,7 +267,11 @@ namespace legit
     auto deviceFeatures12 = vk::PhysicalDeviceVulkan12Features()
       .setScalarBlockLayout(true);
 
-    vk::StructureChain<vk::DeviceCreateInfo, vk::PhysicalDeviceVulkan12Features> chain = { deviceCreateInfo , deviceFeatures12 };
+    auto floatAtomicFeatures = vk::PhysicalDeviceShaderAtomicFloatFeaturesEXT()
+      .setShaderBufferFloat32Atomics(true)
+      .setShaderBufferFloat32AtomicAdd(true);
+
+    vk::StructureChain<vk::DeviceCreateInfo, vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceShaderAtomicFloatFeaturesEXT> chain = { deviceCreateInfo , deviceFeatures12, floatAtomicFeatures };
 
     return physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
   }

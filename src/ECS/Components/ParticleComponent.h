@@ -1,5 +1,5 @@
 #pragma once
-#include <entity\registry.hpp>
+#include <entity/registry.hpp>
 #include "../../Utils/GlmInclude.h"
 
 

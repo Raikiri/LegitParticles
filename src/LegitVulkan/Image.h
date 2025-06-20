@@ -154,6 +154,24 @@ namespace legit
       return imageMemory.get();
     }
 
+    static vk::ImageCreateInfo CreateInfo1d(glm::uint size, uint32_t mipsCount, uint32_t arrayLayersCount, vk::Format format, vk::ImageUsageFlags usage)
+    {
+      auto layout = vk::ImageLayout::eUndefined;
+      auto imageInfo = vk::ImageCreateInfo()
+        .setImageType(vk::ImageType::e1D)
+        .setExtent(vk::Extent3D(size, 1, 1))
+        .setMipLevels(mipsCount)
+        .setArrayLayers(arrayLayersCount)
+        .setFormat(format)
+        .setInitialLayout(layout) //images must be created in undefined layout
+        .setUsage(usage)
+        .setSharingMode(vk::SharingMode::eExclusive)
+        .setSamples(vk::SampleCountFlagBits::e1)
+        .setFlags(vk::ImageCreateFlags());/*
+                                          .setTiling(vk::ImageTiling::eOptimal);*/
+      return imageInfo;
+    }
+
     static vk::ImageCreateInfo CreateInfo2d(glm::uvec2 size, uint32_t mipsCount, uint32_t arrayLayersCount, vk::Format format, vk::ImageUsageFlags usage)
     {
       auto layout = vk::ImageLayout::eUndefined;
@@ -218,6 +236,8 @@ namespace legit
 
       vk::MemoryRequirements imageMemRequirements = logicalDevice.getImageMemoryRequirements(imageHandle.get());
 
+      this->bytesPerPixelAvg = double(imageMemRequirements.size) / double(imageInfo.extent.width * imageInfo.extent.height * imageInfo.extent.depth * imageInfo.arrayLayers); //does not count mips. for padding checks
+
       auto allocInfo = vk::MemoryAllocateInfo()
         .setAllocationSize(imageMemRequirements.size)
         .setMemoryTypeIndex(legit::FindMemoryTypeIndex(physicalDevice, imageMemRequirements.memoryTypeBits, memFlags));
@@ -230,5 +250,6 @@ namespace legit
     vk::UniqueImage imageHandle;
     std::unique_ptr<legit::ImageData> imageData;
     vk::UniqueDeviceMemory imageMemory;
+    double bytesPerPixelAvg;
   };
 }

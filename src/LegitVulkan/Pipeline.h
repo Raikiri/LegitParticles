@@ -17,6 +17,13 @@ namespace legit
       settings.writeEnable = false;
       return settings;
     }
+    static DepthSettings Always()
+    {
+      DepthSettings settings;
+      settings.depthFunc = vk::CompareOp::eAlways;
+      settings.writeEnable = true;
+      return settings;
+    }
     vk::CompareOp depthFunc;
     bool writeEnable;
     bool operator < (const DepthSettings &other) const
@@ -56,7 +63,9 @@ namespace legit
         .setColorBlendOp(vk::BlendOp::eAdd)
         .setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB)
         .setSrcColorBlendFactor(vk::BlendFactor::eOne)
-        .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+        .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha)
+        .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
+        .setDstAlphaBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
       return blendSettings;
     }
     static BlendSettings AlphaBlend()
@@ -68,7 +77,9 @@ namespace legit
         .setColorBlendOp(vk::BlendOp::eAdd)
         .setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB)
         .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
-        .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+        .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha)
+        .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
+        .setDstAlphaBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
       return blendSettings;
     }
     bool operator < (const BlendSettings &other) const
@@ -159,7 +170,8 @@ namespace legit
 
       auto depthStencilState = vk::PipelineDepthStencilStateCreateInfo()
         .setStencilTestEnable(false)
-        .setDepthTestEnable(depthSettings.depthFunc == vk::CompareOp::eAlways ? false : true)
+        //if depth test is disabled, it also disables depth writes. hence if writes are enabled, also must enable depth test
+        .setDepthTestEnable((depthSettings.depthFunc == vk::CompareOp::eAlways && !depthSettings.writeEnable) ? false : true)
         .setDepthCompareOp(depthSettings.depthFunc)
         .setDepthWriteEnable(depthSettings.writeEnable)
         .setDepthBoundsTestEnable(false);

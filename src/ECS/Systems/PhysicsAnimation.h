@@ -1,6 +1,6 @@
 #pragma once
 
-#include <entity\registry.hpp>
+#include <entity/registry.hpp>
 #include "../../Utils/GroupArg.h"
 #include "../Context/PhysicsAnimationData.h"
 #include "json/json.h"
@@ -41,35 +41,7 @@ namespace almost
     return ComplexVec<Vec>(a.x, -a.y);
   }
 
-  /*SmoothState AdvanceSmoothState_(SmoothState animState, SmoothState controlState, float freq, float damp, float response, float dt)
-  {
-    using Complex = ComplexVec<glm::vec2>;
-    glm::vec2 animVelocity = animState.velocity;
-    glm::vec2 controlVelocity = controlState.velocity;
-    float pi = 3.141592f;
-    float omega = 2.0f * pi * freq;
 
-    glm::vec2 animPosition = animState.position - controlState.position;
-
-    Complex A0 = Complex(animPosition / 2.0f, -animVelocity / omega / 2.0f);
-    Complex A1 = ComplexConj(A0);
-
-    //amplitude = -animVelocity / omega / glm::sin(phi);
-
-    Complex phaseAdvance0 = ComplexExp(glm::vec2( omega * dt));
-    Complex phaseAdvance1 = ComplexConj(phaseAdvance0);
-
-    Complex velocityMult0 = Complex(glm::vec2(0.0f),  glm::vec2(omega));
-    Complex velocityMult1 = ComplexConj(velocityMult0);
-
-    Complex advancedPos = ComplexMul(A0, phaseAdvance0) + ComplexMul(A1, phaseAdvance1);
-    Complex advancedVelocity = ComplexMul(velocityMult0, ComplexMul(A0, phaseAdvance0)) + ComplexMul(velocityMult1, ComplexMul(A1, phaseAdvance1));
-
-    SmoothState advancedState;
-    advancedState.position = controlState.position + advancedPos.x;
-    advancedState.velocity = advancedVelocity.x;
-    return advancedState;
-  }*/
 
   SmoothState AdvanceSmoothState(SmoothState animState, SmoothState controlState, float freq, float damp, float response, float dt)
   {
@@ -84,21 +56,15 @@ namespace almost
     glm::vec2 animPosition = animState.position - (controlState.position + deltaControlPos);
 
     float s = glm::sqrt(glm::max(0.0f, 1.0f - damp * damp));
-    Complex A0 = Complex(animPosition / 2.0f, -(animVelocity + animPosition * damp * omega) / (omega * 2.0f * s));
-    Complex A1 = ComplexConj(A0);
+    Complex amp = Complex(animPosition, -(animVelocity + animPosition * damp * omega) / (omega * s)); // divided by two if both amps are used
 
-    //amplitude = -animVelocity / omega / glm::sin(phi);
+    Complex phaseAdvance = ComplexExp(glm::vec2(omega * s * dt));
 
-    Complex phaseAdvance0 = ComplexExp(glm::vec2(omega * s * dt));
-    Complex phaseAdvance1 = ComplexConj(phaseAdvance0);
-
-    Complex velocityMult0 = Complex(glm::vec2(0.0f), glm::vec2(omega * s));
-    Complex velocityMult1 = ComplexConj(velocityMult0);
+    Complex velocityMult = Complex(glm::vec2(0.0f), glm::vec2(omega * s));
 
     Complex dampExp = glm::vec2(glm::exp(-damp * omega * dt));
-    Complex advancedPos = (ComplexMul(A0, phaseAdvance0) + ComplexMul(A1, phaseAdvance1)) * dampExp;
-    Complex advancedVelocity = -advancedPos * glm::vec2(damp * omega) + 
-      (ComplexMul(velocityMult0, ComplexMul(A0, phaseAdvance0)) + ComplexMul(velocityMult1, ComplexMul(A1, phaseAdvance1))) * dampExp;
+    Complex advancedPos = ComplexMul(amp, phaseAdvance) * dampExp;
+    Complex advancedVelocity = -advancedPos * glm::vec2(damp * omega) + ComplexMul(velocityMult, ComplexMul(amp, phaseAdvance)) * dampExp;
 
     SmoothState advancedState;
     advancedState.position = controlState.position + deltaControlPos + advancedPos.x;
@@ -134,14 +100,12 @@ namespace almost
     almost::WindowData& windowData)
   {
     static float freq = 1.0f;
-    ImGui::SliderFloat("Freq", &freq, 0.00001f, 10.0f);
+    ImGui::SliderFloat("Freq (Hz)", &freq, 0.00001f, 30.0f);
     static float damp = 1.0f;
-    ImGui::SliderFloat("Damp", &damp, 0.0f, 2.0f);
+    ImGui::SliderFloat("Damp", &damp, 0.0f, 1.0f);
     static float response = 1.0f;
-    ImGui::SliderFloat("Response", &response, 0.0f, 2.0f);
+    ImGui::SliderFloat("Response", &response, -2.0f, 2.0f);
     glm::vec2 nextObjPos;
-    static bool analytical = false;
-    ImGui::Checkbox("Analytical", &analytical);
     //float dt = 1.0f / 240.0f;
     /*if (analytical)
       nextObjPos = GetNextPhysicsAnimationPosAnalytical(physicsAnimationData.prevObjPos, physicsAnimationData.objPos, inputData.prevWorldMousePos, inputData.worldMousePos, freq, damp, response, dt);
@@ -164,7 +128,7 @@ namespace almost
 
 
     static int updateTimeMs = 10;
-    ImGui::SliderInt("Dt (ms)", &updateTimeMs, 1, 300);
+    ImGui::SliderInt("dt (ms)", &updateTimeMs, 1, 100);
 
     auto updatePeriod = std::chrono::milliseconds(int(updateTimeMs));
     auto currTime = std::chrono::system_clock::now();
@@ -187,13 +151,14 @@ namespace almost
       }
       physicsAnimationData.prevMouseWorldPos = inputData.worldMousePos;
     }
-
+    physicsAnimationData.isReset = false;
     if (glfwGetKey(windowData.window, GLFW_KEY_SPACE))
     {
       physicsAnimationData.objPos0 = inputData.worldMousePos;
       physicsAnimationData.prevObjPos0 = inputData.worldMousePos;
       physicsAnimationData.objState1.position = inputData.worldMousePos;
       physicsAnimationData.objState1.velocity = glm::vec2(0.0f, 0.0f);
+      physicsAnimationData.isReset = true;
     }
   }
   
@@ -202,6 +167,10 @@ namespace almost
     almost::InputData& inputData,
     almost::MeshRendererData& meshRendererData)
   {
+    if (physicsAnimationData.isReset)
+    {
+      almost::SubmitCircle(meshRendererData, physicsAnimationData.objState1.position, 20.0f, 10, glm::vec4(0.3f, 0.8f, 0.3f, 1.0f));
+    }
     almost::SubmitCircle(meshRendererData, physicsAnimationData.objState1.position, 15.0f, 10, favBlue);
     almost::SubmitCircle(meshRendererData, physicsAnimationData.objPos0, 10.0f, 10, favOrange);
   }

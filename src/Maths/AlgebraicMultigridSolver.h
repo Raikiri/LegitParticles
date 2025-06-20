@@ -16,7 +16,7 @@ namespace almost
     using ValueType1 = typename Space::ValueType1;
     using ResultType = typename Space::ResultType;
     using ScalarType = typename Space::ScalarType;
-    using FineDimensionType = typename DimensionType;
+    using FineDimensionType = DimensionType;
     SparseMatrix<DimensionType, DimensionType, ValueType0> systemMatrix;
 
     size_t valuesCount;
@@ -110,8 +110,8 @@ namespace almost
         layerSolvers[i].restrictionMatrix.BuildFromTransposed(layerSolvers[i].interpolationMatrix, storage);
 
         layerSolvers[i + 1].Resize(layerSolvers[i].restrictionMatrix.rowDimension.size);
-        layerSolvers[i].tmpMatrix.BuildFromSparseProduct<Space>(layerSolvers[i].restrictionMatrix, layerSolvers[i].systemMatrix, storage);
-        layerSolvers[i + 1].systemMatrix.BuildFromSparseProduct<Space>(layerSolvers[i].tmpMatrix, layerSolvers[i].interpolationMatrix, storage);
+        layerSolvers[i].tmpMatrix.template BuildFromSparseProduct<Space>(layerSolvers[i].restrictionMatrix, layerSolvers[i].systemMatrix, storage);
+        layerSolvers[i + 1].systemMatrix.template BuildFromSparseProduct<Space>(layerSolvers[i].tmpMatrix, layerSolvers[i].interpolationMatrix, storage);
       }
     }
 

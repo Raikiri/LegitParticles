@@ -25,8 +25,10 @@ namespace legit
       legit::ShaderProgram *shaderProgram)
     {
       GraphicsPipelineKey pipelineKey;
-      pipelineKey.vertexShader = shaderProgram->vertexShader->GetModule()->GetHandle();
-      pipelineKey.fragmentShader = shaderProgram->fragmentShader->GetModule()->GetHandle();
+      pipelineKey.vertexShaderModule = shaderProgram->vertexShader->GetModule()->GetHandle();
+      pipelineKey.vertexShaderHash = shaderProgram->vertexShader->GetModule()->GetHash();
+      pipelineKey.fragmentShaderModule = shaderProgram->fragmentShader->GetModule()->GetHandle();
+      pipelineKey.fragmentShaderHash = shaderProgram->fragmentShader->GetModule()->GetHash();
       pipelineKey.vertexDecl = vertexDeclaration;
       pipelineKey.depthSettings = depthSettings;
       pipelineKey.attachmentBlendSettings = attachmentBlendSettings;
@@ -125,12 +127,14 @@ namespace legit
     {
       GraphicsPipelineKey()
       {
-        vertexShader = nullptr;
-        fragmentShader = nullptr;
+        vertexShaderModule = nullptr;
+        fragmentShaderModule = nullptr;
         renderPass = nullptr;
       }
-      vk::ShaderModule vertexShader;
-      vk::ShaderModule fragmentShader;
+      vk::ShaderModule vertexShaderModule;
+      uint32_t vertexShaderHash;
+      vk::ShaderModule fragmentShaderModule;
+      uint32_t fragmentShaderHash;
       legit::VertexDeclaration vertexDecl;
       vk::PipelineLayout pipelineLayout;
       vk::Extent2D extent;
@@ -141,8 +145,8 @@ namespace legit
       bool operator < (const GraphicsPipelineKey &other) const
       {
         return
-          std::tie(vertexShader, fragmentShader, vertexDecl, pipelineLayout, renderPass, depthSettings, attachmentBlendSettings, topology) <
-          std::tie(other.vertexShader, other.fragmentShader, other.vertexDecl, other.pipelineLayout, other.renderPass, other.depthSettings, other.attachmentBlendSettings, topology);
+          std::tie(vertexShaderModule, vertexShaderHash, fragmentShaderModule, fragmentShaderHash, vertexDecl, pipelineLayout, renderPass, depthSettings, attachmentBlendSettings, topology) <
+          std::tie(other.vertexShaderModule, other.vertexShaderHash, other.fragmentShaderModule, other.fragmentShaderHash, other.vertexDecl, other.pipelineLayout, other.renderPass, other.depthSettings, other.attachmentBlendSettings, topology);
       }
     };
 
@@ -150,7 +154,7 @@ namespace legit
     {
       auto &pipeline = graphicsPipelineCache[key];
       if (!pipeline)
-        pipeline = std::unique_ptr<legit::GraphicsPipeline>(new legit::GraphicsPipeline(logicalDevice, key.vertexShader, key.fragmentShader, key.vertexDecl, key.pipelineLayout, key.depthSettings, key.attachmentBlendSettings, key.topology, key.renderPass));
+        pipeline = std::unique_ptr<legit::GraphicsPipeline>(new legit::GraphicsPipeline(logicalDevice, key.vertexShaderModule, key.fragmentShaderModule, key.vertexDecl, key.pipelineLayout, key.depthSettings, key.attachmentBlendSettings, key.topology, key.renderPass));
       return pipeline.get();
     }
     

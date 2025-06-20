@@ -1,5 +1,6 @@
 #pragma once
 #include "Handles.h"
+#include "../LegitProfiler/ProfilerTask.h"
 #include <vector>
 #include <chrono>
 #include <assert.h>

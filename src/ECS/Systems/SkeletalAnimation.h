@@ -1,8 +1,8 @@
 #pragma once
-#include "../../LegitVulkan/ProfilerTask.h"
+#include "../../LegitProfiler/ProfilerTask.h"
 #include "../../LegitVulkan/CpuProfiler.h"
 
-#include <entity\registry.hpp>
+#include <entity/registry.hpp>
 #include "../../Utils/GroupArg.h"
 #include "../Context/AnimationData.h"
 #include "json/json.h"

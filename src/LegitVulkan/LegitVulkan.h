@@ -1,14 +1,18 @@
 #pragma once
-#define VK_USE_PLATFORM_WIN32_KHR
+
+#if defined(WIN32)
+  #define VK_USE_PLATFORM_WIN32_KHR
+#else
+  #define VK_USE_PLATFORM_WAYLAND_KHR
+#endif
+
 //#include <vulkan/vulkan.h>
 //#include <vulkan/vk_sdk_platform.h>
-#define NOMINMAX
 #include <vulkan/vulkan.hpp>
 
 //#include <Windows.h>
 
 #include <glm/glm.hpp>
-#include "ProfilerTask.h"
 #include "Handles.h"
 #include "Pool.h"
 #include "CpuProfiler.h"
@@ -35,6 +39,7 @@
 
 #include "Core.h"
 #include "RenderGraph.h"
+#include "CoreImpl.h"
 
 #include "PresentQueue.h"
 

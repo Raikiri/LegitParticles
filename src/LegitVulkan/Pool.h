@@ -1,3 +1,4 @@
+#pragma once
 namespace Utils
 {
   template<typename T>
@@ -55,14 +56,14 @@ namespace Utils
       {
         Id id = { freeIds.back() };
         freeIds.pop_back();
-        data[id.asInt] = elem;
+        data[id.asInt] = std::move(elem);
         isPresent[id.asInt] = true;
         return id;
       }
       else
       {
         Id id = { data.size() };
-        data.push_back(elem);
+        data.emplace_back(std::move(elem));
         isPresent.push_back(true);
         return id;
       }
@@ -72,6 +73,13 @@ namespace Utils
       assert(isPresent[id.asInt]);
       isPresent[id.asInt] = false;
       freeIds.push_back(id);
+    }
+    const T& Get(const Id &id) const
+    {
+      assert(id.asInt != size_t(-1));
+      assert(id.asInt < data.size());
+      assert(isPresent[id.asInt]);
+      return data[id.asInt];
     }
     T& Get(const Id &id)
     {

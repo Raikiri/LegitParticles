@@ -16,6 +16,7 @@ namespace almost
     glm::vec2 objPos0;
     glm::vec2 prevObjPos0;
     glm::vec2 prevMouseWorldPos;
+    bool isReset = false;
 
     std::chrono::system_clock::time_point lastUpdateTime;
 

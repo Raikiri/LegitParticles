@@ -2,10 +2,10 @@ namespace legit
 {
   struct PresentQueue
   {
-    PresentQueue(legit::Core *core, legit::WindowDesc windowDesc, uint32_t imagesCount, vk::PresentModeKHR preferredMode)
+    PresentQueue(legit::Core *core, legit::WindowDesc windowDesc, glm::uvec2 defaultSize, uint32_t imagesCount, vk::PresentModeKHR preferredMode)
     {
       this->core = core;
-      this->swapchain = core->CreateSwapchain(windowDesc, imagesCount, preferredMode);
+      this->swapchain = core->CreateSwapchain(windowDesc, defaultSize, imagesCount, preferredMode);
       this->swapchainImageViews = swapchain->GetImageViews();
       this->swapchainRect = vk::Rect2D(vk::Offset2D(), swapchain->GetSize());
       this->imageIndex = -1;
@@ -35,22 +35,21 @@ namespace legit
     }
   private:
     legit::Core *core;
-    std::unique_ptr<legit::Swapchain> swapchain;
-
-    std::vector<legit::ImageView *> swapchainImageViews;
     uint32_t imageIndex;
-
     vk::Rect2D swapchainRect;
+    
+    std::unique_ptr<legit::Swapchain> swapchain;
+    std::vector<legit::ImageView *> swapchainImageViews;
   };
   
   struct InFlightQueue
   {
-    InFlightQueue(legit::Core *core, legit::WindowDesc windowDesc, uint32_t inFlightCount, vk::PresentModeKHR preferredMode)
+    InFlightQueue(legit::Core *core, legit::WindowDesc windowDesc, glm::uvec2 defaultSize, uint32_t inFlightCount, vk::PresentModeKHR preferredMode)
     {
       this->core = core;
       this->memoryPool = std::make_unique<legit::ShaderMemoryPool>(core->GetDynamicMemoryAlignment());
 
-      presentQueue.reset(new PresentQueue(core, windowDesc, inFlightCount, preferredMode));
+      presentQueue.reset(new PresentQueue(core, windowDesc, defaultSize, inFlightCount, preferredMode));
 
 
       for (size_t frameIndex = 0; frameIndex < inFlightCount; frameIndex++)
@@ -63,7 +62,7 @@ namespace legit
         frame.commandBuffer = std::move(core->AllocateCommandBuffers(1)[0]);
         core->SetObjectDebugName(frame.commandBuffer.get(), std::string("Frame") + std::to_string(frameIndex) + " command buffer");
         frame.shaderMemoryBuffer = std::unique_ptr<legit::Buffer>(new legit::Buffer(core->GetPhysicalDevice(), core->GetLogicalDevice(), 100000000, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent));
-        frame.gpuProfiler = std::unique_ptr<legit::GpuProfiler>(new legit::GpuProfiler(core->GetPhysicalDevice(), core->GetLogicalDevice(), 512));
+        frame.gpuProfiler = std::unique_ptr<legit::GpuProfiler>(new legit::GpuProfiler(core->GetPhysicalDevice(), core->GetLogicalDevice(), 4096));
         frames.push_back(std::move(frame));
       }
       frameIndex = 0;
@@ -179,6 +178,7 @@ namespace legit
     }
   private:
     std::unique_ptr<legit::ShaderMemoryPool> memoryPool;
+    std::unique_ptr<PresentQueue> presentQueue;
     std::map<legit::ImageView *, legit::RenderGraph::ImageViewProxyUnique> swapchainImageViewProxies;
 
     struct FrameResources
@@ -196,7 +196,6 @@ namespace legit
 
     legit::Core *core;
     legit::ImageView *currSwapchainImageView;
-    std::unique_ptr<PresentQueue> presentQueue;
     legit::CpuProfiler cpuProfiler;
     std::vector<legit::ProfilerTask> lastFrameCpuProfilerTasks;
 

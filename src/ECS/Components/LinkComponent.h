@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Utils/GlmInclude.h"
-#include <entity\registry.hpp>
+#include <entity/registry.hpp>
 
 namespace almost
 {
