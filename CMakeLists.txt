@@ -42,6 +42,11 @@ file(GLOB_RECURSE legit_headers ./src/*.h)
 
 add_executable(LegitEngine)
 
+# Looks like without this the compiler still has too much optimization enabled in the debug build which makes it impossible to debug optimized code
+target_compile_options(LegitEngine PRIVATE
+  $<$<CONFIG:Debug>:-O0>
+)
+
 #source_group(TREE src/)
 target_sources(LegitEngine PRIVATE ${dep_sources} ${legit_sources} ${legit_headers})
 target_link_libraries(LegitEngine ${Vulkan_LIBRARIES} ${GLFW3_LIBRARY})
