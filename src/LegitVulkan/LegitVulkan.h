@@ -17,6 +17,7 @@
 #include "Pool.h"
 #include "CpuProfiler.h"
 #include "QueueIndices.h"
+#include "WindowDesc.h"
 #include "Surface.h"
 #include "VertexDeclaration.h"
 #include "ShaderModule.h"

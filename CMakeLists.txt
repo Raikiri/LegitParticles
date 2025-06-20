@@ -12,7 +12,6 @@ set(SPIRVCROSS_INCLUDE_DIR ./dependencies/spirv-cross)
 set(GLI_INCLUDE_DIR ./dependencies/gli)
 set(ENTT_INCLUDE_DIR ./dependencies/entt)
 set(GLM_INCLUDE_DIR ./dependencies/glm/include)
-set(GLFW3_INCLUDE_DIR ./dependencies/glfw/include)
 set(JSONCPP_INCLUDE_DIR ./dependencies/jsoncpp)
 set(IMGUI_INCLUDE_DIR ./dependencies/imgui)
 

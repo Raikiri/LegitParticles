@@ -22,26 +22,26 @@ namespace almost
     glm::vec2 cameraUp = glm::vec2(-cameraRight.y, cameraRight.x);
 
     glm::vec2 dir = glm::vec2(0.0f);
-    if (glfwGetKey(windowData.window, GLFW_KEY_E))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_E))
       dir += cameraUp;
-    if (glfwGetKey(windowData.window, GLFW_KEY_S))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_S))
       dir += -cameraRight;
-    if (glfwGetKey(windowData.window, GLFW_KEY_D))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_D))
       dir += -cameraUp;
-    if (glfwGetKey(windowData.window, GLFW_KEY_F))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_F))
       dir += cameraRight;
 
     float angSpeed = 1.0f;
-    if (glfwGetKey(windowData.window, GLFW_KEY_R))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_R))
       cameraData.ang -= angSpeed * inputData.deltaTime;
-    if (glfwGetKey(windowData.window, GLFW_KEY_W))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_W))
       cameraData.ang += angSpeed * inputData.deltaTime;
 
 
     float scaleSpeed = 1.0f;
-    if (glfwGetKey(windowData.window, GLFW_KEY_T))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_T))
       cameraData.fov.x *= exp(-inputData.deltaTime * scaleSpeed);
-    if (glfwGetKey(windowData.window, GLFW_KEY_G))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_G))
       cameraData.fov.x *= exp(inputData.deltaTime * scaleSpeed);
 
     float moveSpeed = cameraData.fov.x * 1.0f;

@@ -36,7 +36,7 @@ namespace almost
       float camAngle;
     };
     #pragma pack(pop)
-    if (glfwGetKey(windowData.window, GLFW_KEY_V))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_V))
     {
       ReloadShader(rendererData, fullscreenRendererData);
     }

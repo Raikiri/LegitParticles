@@ -152,7 +152,7 @@ namespace almost
       physicsAnimationData.prevMouseWorldPos = inputData.worldMousePos;
     }
     physicsAnimationData.isReset = false;
-    if (glfwGetKey(windowData.window, GLFW_KEY_SPACE))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_SPACE))
     {
       physicsAnimationData.objPos0 = inputData.worldMousePos;
       physicsAnimationData.prevObjPos0 = inputData.worldMousePos;

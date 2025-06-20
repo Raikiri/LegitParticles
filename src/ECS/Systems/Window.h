@@ -3,12 +3,10 @@
 namespace almost
 {
 
-  WindowData InitWindow()
+  WindowData InitWindow(legit::WindowFactory &windowFactory)
   {
     WindowData windowData;
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    windowData.window = glfwCreateWindow(1920, 1080, "Legit Vulkan renderer", nullptr, nullptr);
+    windowData.window = windowFactory.CreateWindow(1920, 1080, "Legit Vulkan renderer", nullptr, nullptr);
 
     return windowData;
   }

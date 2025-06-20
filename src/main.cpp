@@ -1,4 +1,5 @@
 #include <entity/registry.hpp>
+#include "LegitGLFW/LegitGLFW.h"
 #include "LegitVulkan/LegitVulkan.h"
 //#include "LegitVulkan/CoreImpl.h"
 
@@ -36,88 +37,86 @@
 
 int main(int argsCount, char **args)
 {
+  legit::WindowFactory windowFactory;
   entt::registry reg;
-  auto windowHandle = ScopedCtx<almost::WindowData>(reg, almost::InitWindow());
+  
+  auto windowHandle = ScopedCtx<almost::WindowData>(reg, almost::InitWindow(windowFactory));
+  auto rendererHandle = ScopedCtx<almost::RendererData>(reg, almost::InitRenderer(reg.ctx<almost::WindowData>()));
+  auto inputHandle = ScopedCtx<almost::InputData>(reg, almost::InitInputData(reg.ctx<almost::WindowData>()));
+  auto cameraHandle = ScopedCtx<almost::CameraData>(reg, almost::InitCameraData());
+  auto meshRendererHandle = ScopedCtx<almost::MeshRendererData>(reg, almost::InitMeshRendererData(reg.ctx<almost::RendererData>()));
+  auto physicsHandle = ScopedCtx<almost::PhysicsData>(reg, almost::InitPhysicsData());
+  //auto animationHandle = ScopedCtx<almost::AnimationData>(reg, almost::InitAnimationData());
+  //auto physicsAnimationHandle = ScopedCtx<almost::PhysicsAnimationData>(reg, almost::InitPhysicsAnimationData());
+  auto fullscreenRendererHandle = ScopedCtx<almost::FullscreenRendererData>(reg, almost::InitFullscreenRendererData(reg.ctx<almost::RendererData>()));
+  //auto tesetbedRendererHandle = ScopedCtx<almost::ShaderTestbedRendererData>(reg, almost::InitShaderTestbedRendererData(reg.ctx<almost::RendererData>()));
+  almost::MapMeshRenderer(reg.ctx<almost::MeshRendererData>());
+
+  std::vector<entt::registry> regLayers;
+  regLayers.resize(6);
+
+  CreateGround(regLayers[0]);
+  //CreateClothPhysicsMesh(regLayers[0]);
+  CreateMultigridPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 65, 65 });
+
+  while (!reg.ctx<almost::InputData>().isWindowClosed)
   {
-    auto rendererHandle = ScopedCtx<almost::RendererData>(reg, almost::InitRenderer(reg.ctx<almost::WindowData>()));
-    auto inputHandle = ScopedCtx<almost::InputData>(reg, almost::InitInputData(reg.ctx<almost::WindowData>()));
-    auto cameraHandle = ScopedCtx<almost::CameraData>(reg, almost::InitCameraData());
-    auto meshRendererHandle = ScopedCtx<almost::MeshRendererData>(reg, almost::InitMeshRendererData(reg.ctx<almost::RendererData>()));
-    auto physicsHandle = ScopedCtx<almost::PhysicsData>(reg, almost::InitPhysicsData());
-    //auto animationHandle = ScopedCtx<almost::AnimationData>(reg, almost::InitAnimationData());
-    auto physicsAnimationHandle = ScopedCtx<almost::PhysicsAnimationData>(reg, almost::InitPhysicsAnimationData());
-    auto fullscreenRendererHandle = ScopedCtx<almost::FullscreenRendererData>(reg, almost::InitFullscreenRendererData(reg.ctx<almost::RendererData>()));
-    //auto tesetbedRendererHandle = ScopedCtx<almost::ShaderTestbedRendererData>(reg, almost::InitShaderTestbedRendererData(reg.ctx<almost::RendererData>()));
-    almost::MapMeshRenderer(reg.ctx<almost::MeshRendererData>());
+    auto& windowData = reg.ctx<almost::WindowData>();
+    auto& rendererData = reg.ctx<almost::RendererData>();
+    auto& fullscreenRendererData = reg.ctx<almost::FullscreenRendererData>();
+    //auto& shaderTestbedRendererData = reg.ctx<almost::ShaderTestbedRendererData>();
+    auto& meshRendererData = reg.ctx<almost::MeshRendererData>();
+    auto& cameraData = reg.ctx<almost::CameraData>();
+    auto& physicsData = reg.ctx<almost::PhysicsData>();
+    //auto& animationData = reg.ctx<almost::AnimationData>();
+    //auto& physicsAnimationData = reg.ctx<almost::PhysicsAnimationData>();
+    auto& inputData = reg.ctx<almost::InputData>();
 
-    std::vector<entt::registry> regLayers;
-    regLayers.resize(6);
+    //almost::ProcessPhysicsData(reg.ctx<almost::PhysicsData>(), reg.ctx<almost::MeshRendererData>());
 
-    CreateGround(regLayers[0]);
-    //CreateClothPhysicsMesh(reg);
-    //CreateMultigridPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 65, 65 });
 
-    while (!reg.ctx<almost::InputData>().isWindowClosed)
+    almost::StartFrame(windowData, rendererData);
+    reg.ctx<almost::MeshRendererData>().verticesCount = 0;
+    reg.ctx<almost::MeshRendererData>().indicesCount = 0;
+
     {
-      auto& windowData = reg.ctx<almost::WindowData>();
-      auto& rendererData = reg.ctx<almost::RendererData>();
-      auto& fullscreenRendererData = reg.ctx<almost::FullscreenRendererData>();
-      //auto& shaderTestbedRendererData = reg.ctx<almost::ShaderTestbedRendererData>();
-      auto& meshRendererData = reg.ctx<almost::MeshRendererData>();
-      auto& cameraData = reg.ctx<almost::CameraData>();
-      auto& physicsData = reg.ctx<almost::PhysicsData>();
-      //auto& animationData = reg.ctx<almost::AnimationData>();
-      auto& physicsAnimationData = reg.ctx<almost::PhysicsAnimationData>();
-      auto& inputData = reg.ctx<almost::InputData>();
-
-      //almost::ProcessPhysicsData(reg.ctx<almost::PhysicsData>(), reg.ctx<almost::MeshRendererData>());
-
-
-      almost::StartFrame(windowData, rendererData);
-      reg.ctx<almost::MeshRendererData>().verticesCount = 0;
-      reg.ctx<almost::MeshRendererData>().indicesCount = 0;
-
+      auto inputTask = rendererData.inFlightQueue->GetCpuProfiler().StartScopedTask("Input", legit::Colors::greenSea);
+      almost::ProcessInput(reg.ctx<almost::WindowData>(), reg.ctx<almost::InputData>());
+      almost::UpdateCamera(reg.ctx<almost::WindowData>(), reg.ctx<almost::RendererData>(), reg.ctx<almost::InputData>(), reg.ctx<almost::CameraData>());
+      for (auto& layer : regLayers)
       {
-        auto inputTask = rendererData.inFlightQueue->GetCpuProfiler().StartScopedTask("Input", legit::Colors::greenSea);
-        almost::ProcessInput(reg.ctx<almost::WindowData>(), reg.ctx<almost::InputData>());
-        almost::UpdateCamera(reg.ctx<almost::WindowData>(), reg.ctx<almost::RendererData>(), reg.ctx<almost::InputData>(), reg.ctx<almost::CameraData>());
-        for (auto& layer : regLayers)
-        {
-          almost::ProcessPhysicsControls(windowData, almost::ParticleGroup::Get(layer), inputData, cameraData);
-        }
+        almost::ProcessPhysicsControls(windowData, almost::ParticleGroup::Get(layer), inputData, cameraData);
       }
-
-      {
-        almost::ProcessPhysics(regLayers, rendererData.inFlightQueue->GetCpuProfiler());
-      }
-      {
-        almost::ProcessPhysicsAnimation(physicsAnimationData, inputData, windowData);
-      }
-
-      {
-        auto submitTask = rendererData.inFlightQueue->GetCpuProfiler().StartScopedTask("Submit", legit::Colors::turqoise);
-
-        for (auto& layer : regLayers)
-        {
-          almost::SubmitTriangles(almost::ParticleGroup::Get(layer), almost::TriangleGroup::Get(layer), physicsData, meshRendererData);
-          almost::SubmitLinks(almost::ParticleGroup::Get(layer), almost::LinkGroup::Get(layer), physicsData, meshRendererData);
-          almost::SubmitParticles(almost::ParticleGroup::Get(layer), physicsData, meshRendererData);
-        }
-
-        //almost::SubmitAnimation(animationData, meshRendererData);
-        almost::SubmitPhysicsAnimation(physicsAnimationData, inputData, meshRendererData);
-        almost::RenderFullscreen(windowData, fullscreenRendererData, rendererData, cameraData);
-        almost::RenderMeshes(windowData, meshRendererData, rendererData, cameraData);
-
-        //almost::RenderShaderTestbed(windowData, shaderTestbedRendererData, rendererData, cameraData);
-      }
-      almost::FinishFrame(windowData, rendererData);
     }
-    almost::UnmapMeshRenderer(reg.ctx<almost::MeshRendererData>());
-    reg.ctx<almost::RendererData>().core->WaitIdle();
+
+    {
+      almost::ProcessPhysics(regLayers, rendererData.inFlightQueue->GetCpuProfiler());
+    }
+    {
+      //almost::ProcessPhysicsAnimation(physicsAnimationData, inputData, windowData);
+    }
+
+    {
+      auto submitTask = rendererData.inFlightQueue->GetCpuProfiler().StartScopedTask("Submit", legit::Colors::turqoise);
+
+      for (auto& layer : regLayers)
+      {
+        almost::SubmitTriangles(almost::ParticleGroup::Get(layer), almost::TriangleGroup::Get(layer), physicsData, meshRendererData);
+        almost::SubmitLinks(almost::ParticleGroup::Get(layer), almost::LinkGroup::Get(layer), physicsData, meshRendererData);
+        almost::SubmitParticles(almost::ParticleGroup::Get(layer), physicsData, meshRendererData);
+      }
+
+      //almost::SubmitAnimation(animationData, meshRendererData);
+      //almost::SubmitPhysicsAnimation(physicsAnimationData, inputData, meshRendererData);
+      almost::RenderFullscreen(windowData, fullscreenRendererData, rendererData, cameraData);
+      almost::RenderMeshes(windowData, meshRendererData, rendererData, cameraData);
+
+      //almost::RenderShaderTestbed(windowData, shaderTestbedRendererData, rendererData, cameraData);
+    }
+    almost::FinishFrame(windowData, rendererData);
   }
-  glfwDestroyWindow(reg.ctx<almost::WindowData>().window);
-  glfwTerminate();
+  almost::UnmapMeshRenderer(reg.ctx<almost::MeshRendererData>());
+  reg.ctx<almost::RendererData>().core->WaitIdle();
 
   return 0;
 }

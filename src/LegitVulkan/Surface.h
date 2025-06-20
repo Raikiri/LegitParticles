@@ -1,16 +1,5 @@
 namespace legit
 {
-    struct WindowDesc
-    {
-      #if defined(WIN32)
-        HINSTANCE hInstance;
-        HWND hWnd;
-      #else
-        wl_display *display;
-        wl_surface *surface;
-      #endif
-    };
-
     #if defined(WIN32)
       static vk::UniqueSurfaceKHR CreateSurface(vk::Instance instance, WindowDesc desc)
       {

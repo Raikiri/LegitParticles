@@ -43,7 +43,7 @@ namespace almost
     MassComponent* massComponents = particles.raw<MassComponent>();
     DefPosComponent* defPosComponents = particles.raw<DefPosComponent>();
 
-    if (glfwGetKey(windowData.window, GLFW_KEY_SPACE))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_SPACE))
     {
       for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
       {
@@ -60,7 +60,7 @@ namespace almost
 
     glm::vec2 camRightVec = glm::vec2(cos(cameraData.ang), sin(cameraData.ang));
     glm::vec2 camUpVec = glm::vec2(-camRightVec.y, camRightVec.x);
-    bool isControlled = glfwGetMouseButton(windowData.window, GLFW_MOUSE_BUTTON_1);
+    bool isControlled = glfwGetMouseButton(windowData.window->glfw_window, GLFW_MOUSE_BUTTON_1);
     for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
     {
       DefPosComponent& defPosComponent = defPosComponents[particleIndex];

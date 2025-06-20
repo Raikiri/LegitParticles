@@ -8,7 +8,7 @@ namespace almost
     InputData inputData;
     inputData.prevFrameTime = std::chrono::system_clock::now();
     inputData.deltaTime = 0.0f;
-    glfwGetCursorPos(windowData.window, &inputData.mousePos.x, &inputData.mousePos.y);
+    glfwGetCursorPos(windowData.window->glfw_window, &inputData.mousePos.x, &inputData.mousePos.y);
     inputData.prevMousePos = inputData.mousePos;
     inputData.worldMousePos = glm::vec2(0.0f);
     inputData.prevWorldMousePos = glm::vec2(0.0f);
@@ -23,8 +23,8 @@ namespace almost
 
     glfwPollEvents();
     inputData.prevMousePos = inputData.mousePos;
-    glfwGetCursorPos(windowData.window, &inputData.mousePos.x, &inputData.mousePos.y);
-    inputData.isWindowClosed = glfwWindowShouldClose(windowData.window);
+    glfwGetCursorPos(windowData.window->glfw_window, &inputData.mousePos.x, &inputData.mousePos.y);
+    inputData.isWindowClosed = glfwWindowShouldClose(windowData.window->glfw_window);
   }
 
 }

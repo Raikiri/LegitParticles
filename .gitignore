@@ -19,3 +19,4 @@
 .vs
 /bin/movies/*
 /bin/data/Meshes/*
+/bin/cmake

@@ -30,13 +30,13 @@ namespace almost
     //uint32_t glfwExtensionCount = 2;
 
     rendererData.windowDesc = {};
-    rendererData.windowDesc = GetGlfwWindowDesc(windowData.window);
+    rendererData.windowDesc = GetGlfwWindowDesc(windowData.window->glfw_window);
 
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     rendererData.core = std::make_unique<legit::Core>(glfwExtensions, glfwExtensionCount, &rendererData.windowDesc, true);
 
-    rendererData.imguiRenderer = std::make_unique<ImGuiRenderer>(rendererData.core.get(), windowData.window);
+    rendererData.imguiRenderer = std::make_unique<ImGuiRenderer>(rendererData.core.get(), windowData.window->glfw_window);
     float gray = 0.02f;
     rendererData.clearColor = vk::ClearColorValue(std::array<float, 4>{gray, gray, gray, 1.0f});
 
@@ -45,13 +45,13 @@ namespace almost
 
   void StartFrame(const almost::WindowData& windowData, almost::RendererData& rendererData)
   {
-    rendererData.imguiRenderer->ProcessInput(windowData.window);
+    rendererData.imguiRenderer->ProcessInput(windowData.window->glfw_window);
     if (!rendererData.inFlightQueue)
     {
       std::cout << "recreated\n";
       rendererData.core->ClearCaches();
       //core->GetRenderGraph()->Clear();
-      rendererData.inFlightQueue = std::unique_ptr<legit::InFlightQueue>(new legit::InFlightQueue(rendererData.core.get(), rendererData.windowDesc, GetGlfwWindowClientSize(windowData.window), 2, vk::PresentModeKHR::eMailbox));
+      rendererData.inFlightQueue = std::unique_ptr<legit::InFlightQueue>(new legit::InFlightQueue(rendererData.core.get(), rendererData.windowDesc, GetGlfwWindowClientSize(windowData.window->glfw_window), 2, vk::PresentModeKHR::eMailbox));
       rendererData.imguiRenderer->RecreateSwapchainResources(rendererData.inFlightQueue->GetImageSize(), rendererData.inFlightQueue->GetInFlightFramesCount());
 
       auto& imguiIO = ImGui::GetIO();
@@ -60,7 +60,7 @@ namespace almost
       imguiIO.DisplaySize.y = float(rendererData.inFlightQueue->GetImageSize().height);             // set the current display height here
     }
 
-    if (glfwGetKey(windowData.window, GLFW_KEY_V))
+    if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_V))
     {
       //renderer.ReloadShaders();
     }
@@ -91,7 +91,7 @@ namespace almost
     ImGui::EndFrame();
 
     ImGui::Render();
-    rendererData.imguiRenderer->RenderFrame(rendererData.frameInfo, windowData.window, ImGui::GetDrawData());
+    rendererData.imguiRenderer->RenderFrame(rendererData.frameInfo, windowData.window->glfw_window, ImGui::GetDrawData());
 
     try
     {
