@@ -1,6 +1,4 @@
 #pragma once
-#include "../../LegitProfiler/ProfilerTask.h"
-#include "../../LegitVulkan/CpuProfiler.h"
 
 #include "../Context/PhysicsData.h"
 //#include "../Context/MeshRendererData.h"
@@ -9,7 +7,7 @@
 #include "../Components/TriangleComponent.h"
 #include <entity/registry.hpp>
 #include "../../Utils/GroupArg.h"
-#include "../../Maths/StackStorage.h"
+
 namespace almost
 {
   const glm::vec4 favBlue = glm::vec4(glm::pow(glm::vec3(0.0, 0.5, 0.75), glm::vec3(2.2f)), 1.0f);
@@ -41,11 +39,6 @@ namespace almost
     InputData& inputData,
     CameraData& cameraData);
   
-
-  void ProcessPhysics(
-    std::vector<entt::registry> &regLayers,
-    legit::CpuProfiler& profiler);
-
   void SubmitParticles(
     ParticleGroup::Type particles,
     almost::PhysicsData& physicsData,
