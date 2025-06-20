@@ -88,5 +88,14 @@ namespace almost
       rendererData.core->WaitIdle();
       rendererData.inFlightQueue.reset();
     }
+    
+    int width = 0, height = 0;
+    glfwGetWindowSize(windowData.window->glfw_window, &width, &height);
+    if(rendererData.inFlightQueue && rendererData.inFlightQueue->GetImageSize().width != width || rendererData.inFlightQueue->GetImageSize().height != height)
+    {
+      rendererData.core->WaitIdle();
+      rendererData.inFlightQueue.reset();
+    }
+
   }
 }
