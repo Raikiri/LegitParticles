@@ -1,7 +1,4 @@
 #pragma once
-#include "../../LegitProfiler/ProfilerTask.h"
-#include "../../LegitVulkan/CpuProfiler.h"
-
 #include "../Context/PhysicsData.h"
 //#include "../Context/MeshRendererData.h"
 #include "../Components/ParticleComponent.h"
@@ -39,9 +36,12 @@ namespace almost
   void PreStep(
     ParticleGroup::Type particleGroup,
     LinkGroup::Type linkGroup,
-    TriangleGroup::Type triangleGroup,
-    legit::CpuProfiler& profiler);
-      
+    TriangleGroup::Type triangleGroup);
+    
+  void ProjectLinks(
+    ParticleComponent* particleComponents, MassComponent* massComponents, size_t particlesCount,
+    LinkComponent* linkComponents, LinkIndexComponent* linkIndexComponents, size_t linksCount);
+
   void ProcessPhysicsControls(
     WindowData& windowData,
     ParticleGroup::Type particles,

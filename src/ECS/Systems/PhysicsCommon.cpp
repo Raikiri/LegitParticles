@@ -78,8 +78,7 @@ namespace almost
   void PreStep(
     ParticleGroup::Type particleGroup,
     LinkGroup::Type linkGroup,
-    TriangleGroup::Type triangleGroup,
-    legit::CpuProfiler& profiler)
+    TriangleGroup::Type triangleGroup)
   {
     glm::vec3 gravity = { 0.0f, -1000.0f, 0.0f };
     ParticleComponent* particleComponents = particleGroup.raw<ParticleComponent>();
@@ -87,8 +86,6 @@ namespace almost
     MassComponent* massComponents = particleGroup.raw<MassComponent>();
 
     {
-      auto physicsTask = profiler.StartScopedTask("[Physics] Pre step", legit::Colors::sunFlower);
-
       for (size_t particleIndex = 0; particleIndex < particleGroup.size(); particleIndex++)
       {
         MassComponent& massComponent = massComponents[particleIndex];
@@ -120,6 +117,41 @@ namespace almost
           triangleIndexComponents[triangleIndex].indices[particleNumber] = particleGroup.get<ParticleIndexComponent>(particleEntity).index;
         }
       }
+    }
+  }
+  
+  void ProjectLinks(
+    ParticleComponent* particleComponents, MassComponent* massComponents, size_t particlesCount,
+    LinkComponent* linkComponents, LinkIndexComponent* linkIndexComponents, size_t linksCount)
+  {
+    for (size_t linkIndex = 0; linkIndex < linksCount; linkIndex++)
+    {
+      size_t particleIndex0 = linkIndexComponents[linkIndex].indices[0];
+      MassComponent& massComponent0 = massComponents[particleIndex0];
+      ParticleComponent& particleComponent0 = particleComponents[particleIndex0];
+
+      size_t particleIndex1 = linkIndexComponents[linkIndex].indices[1];
+      MassComponent& massComponent1 = massComponents[particleIndex1];
+      ParticleComponent& particleComponent1 = particleComponents[particleIndex1];
+
+      glm::vec2 diff = particleComponent0.pos - particleComponent1.pos;
+      glm::vec2 delta = diff / (glm::length(diff) + 1e-7f);
+      float compInvMass = 1.0f / (massComponent0.invMass + massComponent1.invMass + 1e-7f);
+
+      float deltaAcceleration = glm::dot(delta, particleComponent0.acceleration - particleComponent1.acceleration);
+      //float deltaVelocity = glm::dot(delta, particleComponent0.velocity - particleComponent1.velocity);
+      float deltaPos = glm::dot(delta, particleComponent0.pos - particleComponent1.pos) - linkComponents[linkIndex].defLength;
+      if (deltaPos < 0) continue;
+      float lambdaAcceleration = deltaAcceleration * compInvMass;
+      //float lambdaVelocity = deltaVelocity * compInvMass;
+      float lambdaPos = deltaPos * compInvMass;
+
+      particleComponent0.pos += -delta * lambdaPos * massComponent0.invMass;
+      particleComponent1.pos += delta * lambdaPos * massComponent1.invMass;
+      /*particleComponent0.velocity += -delta * lambdaVelocity * massComponent0.invMass;
+      particleComponent1.velocity += delta * lambdaVelocity * massComponent1.invMass;
+      particleComponent0.acceleration += -delta * lambdaAcceleration * massComponent0.invMass;
+      particleComponent1.acceleration += delta * lambdaAcceleration * massComponent1.invMass;*/
     }
   }
   
