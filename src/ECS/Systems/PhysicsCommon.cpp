@@ -80,7 +80,7 @@ namespace almost
     LinkGroup::Type linkGroup,
     TriangleGroup::Type triangleGroup)
   {
-    glm::vec3 gravity = { 0.0f, -1000.0f, 0.0f };
+    glm::vec3 gravity = { 0.0f, -100000.0f, 0.0f };
     ParticleComponent* particleComponents = particleGroup.raw<ParticleComponent>();
     ParticleIndexComponent* particleIndicesComponents = particleGroup.raw<ParticleIndexComponent>();
     MassComponent* massComponents = particleGroup.raw<MassComponent>();
@@ -141,7 +141,7 @@ namespace almost
       float deltaAcceleration = glm::dot(delta, particleComponent0.acceleration - particleComponent1.acceleration);
       //float deltaVelocity = glm::dot(delta, particleComponent0.velocity - particleComponent1.velocity);
       float deltaPos = glm::dot(delta, particleComponent0.pos - particleComponent1.pos) - linkComponents[linkIndex].defLength;
-      if (deltaPos < 0) continue;
+      //if (deltaPos < 0) continue;
       float lambdaAcceleration = deltaAcceleration * compInvMass;
       //float lambdaVelocity = deltaVelocity * compInvMass;
       float lambdaPos = deltaPos * compInvMass;

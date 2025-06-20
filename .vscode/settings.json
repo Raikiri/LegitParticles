@@ -13,7 +13,8 @@
     "*.texprops": "ini",
     "memory": "cpp",
     "system_error": "cpp",
-    "xlocale": "cpp"
+    "xlocale": "cpp",
+    "*._pp": "cpp"
   },
   "nixEnvSelector.nixFile": "${workspaceFolder}/shell.nix"
 }

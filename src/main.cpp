@@ -61,7 +61,7 @@ int main(int argsCount, char **args)
   CreateGround(regLayers[0]);
   //CreateClothPhysicsMesh(regLayers[0]);
   //CreateMultigridPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 65, 65 });
-  CreateSimpleClothPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 16, 16 });
+  CreateSimpleClothPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 2, 10 });
 
   while (!reg.ctx<almost::InputData>().isWindowClosed)
   {
