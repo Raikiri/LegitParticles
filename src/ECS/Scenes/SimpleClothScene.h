@@ -13,24 +13,19 @@ entt::entity CreateParticle(entt::registry& reg, glm::vec2 pos, bool isFixed, bo
   particleComponent.acceleration = glm::vec2(0.0f);
   reg.emplace<almost::ParticleComponent>(particleEntity, particleComponent);
 
-  almost::ParticleIndexComponent particleIndexComponent;
-  particleIndexComponent.index = -1;
-  reg.emplace<almost::ParticleIndexComponent>(particleEntity, particleIndexComponent);
-
-
   almost::MassComponent massComponent;
   massComponent.usesGravity = !isFixed;
   massComponent.invMass = isFixed ? 0.0f : 1000.0f;
   reg.emplace<almost::MassComponent>(particleEntity, massComponent);
 
+  almost::ParticleIndexComponent indexComponent;
+  indexComponent.index = -1;
+  reg.emplace<almost::ParticleIndexComponent>(particleEntity, indexComponent);
+
   almost::DefPosComponent defPosComponent;
   defPosComponent.defPos = pos;
   defPosComponent.isDraggable = isDraggable;
   reg.emplace<almost::DefPosComponent>(particleEntity, defPosComponent);
-
-  reg.emplace<almost::CoarseMultigridComponent>(particleEntity);
-  reg.emplace<almost::FineMultigridComponent>(particleEntity);
-
 
   return particleEntity;
 }

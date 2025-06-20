@@ -11,6 +11,25 @@
 
 namespace almost
 {
+  
+
+  struct Influence
+  {
+    entt::entity particleEntity;
+    float weight;
+  };
+  struct CoarseMultigridComponent
+  {
+    std::vector<Influence> influences;
+  };
+
+  struct FineMultigridComponent
+  {
+    std::vector<Influence> influences;
+  };
+  
+  using ParticleMgGroup = Group<almost::ParticleComponent, almost::ParticleIndexComponent, almost::MassComponent, almost::DefPosComponent, almost::CoarseMultigridComponent, almost::FineMultigridComponent>;
+
   static void SolveLinksNonlinearGauss(
     ParticleComponent* particleComponents, MassComponent* massComponents, size_t particlesCount,
     LinkComponent* linkComponents, LinkIndexComponent* linkIndexComponents, size_t linksCount,

@@ -65,22 +65,87 @@ namespace almost
       if (defPosComponent.isDraggable)
       {
         glm::vec2 dstPos = inputData.worldMousePos + camRightVec * defPosComponent.defPos.x + camUpVec * defPosComponent.defPos.y * 0.0f;
-#if defined(POSITION_BASED)
         particleComponent.pos = isControlled ? dstPos : particleComponent.pos;
+#if defined(POSITION_BASED)
+        //particleComponent.pos = isControlled ? dstPos : particleComponent.pos;
 #else
-        particleComponent.velocity = isControlled ? ((dstPos - particleComponent.pos) * 100.0f) : glm::vec2(0.0f);
+        //particleComponent.velocity = isControlled ? ((dstPos - particleComponent.pos) * 100.0f) : glm::vec2(0.0f);
 #endif
       }
     }
   }
 
+  void PreStep(
+    ParticleGroup::Type particleGroup,
+    LinkGroup::Type linkGroup,
+    TriangleGroup::Type triangleGroup,
+    legit::CpuProfiler& profiler)
+  {
+    glm::vec3 gravity = { 0.0f, -1000.0f, 0.0f };
+    ParticleComponent* particleComponents = particleGroup.raw<ParticleComponent>();
+    ParticleIndexComponent* particleIndicesComponents = particleGroup.raw<ParticleIndexComponent>();
+    MassComponent* massComponents = particleGroup.raw<MassComponent>();
+
+    {
+      auto physicsTask = profiler.StartScopedTask("[Physics] Pre step", legit::Colors::sunFlower);
+
+      for (size_t particleIndex = 0; particleIndex < particleGroup.size(); particleIndex++)
+      {
+        MassComponent& massComponent = massComponents[particleIndex];
+        ParticleComponent& particleComponent = particleComponents[particleIndex];
+        particleComponent.acceleration = massComponent.usesGravity ? gravity : glm::vec3(0.0f, 0.0f, 0.0f);
+        particleIndicesComponents[particleIndex].index = particleIndex;
+      }
+
+      LinkComponent* linkComponents = linkGroup.raw<LinkComponent>();
+      LinkIndexComponent* linkIndexComponents = linkGroup.raw<LinkIndexComponent>();
+      for (size_t linkIndex = 0; linkIndex < linkGroup.size(); linkIndex++)
+      {
+        auto particleEntity0 = linkComponents[linkIndex].entities[0];
+        auto particleEntity1 = linkComponents[linkIndex].entities[1];
+        assert(particleGroup.contains(particleEntity0));
+        assert(particleGroup.contains(particleEntity1));
+        linkIndexComponents[linkIndex].indices[0] = particleGroup.get<ParticleIndexComponent>(particleEntity0).index;
+        linkIndexComponents[linkIndex].indices[1] = particleGroup.get<ParticleIndexComponent>(particleEntity1).index;
+      }
+
+      TriangleComponent* triangleComponents = triangleGroup.raw<TriangleComponent>();
+      TriangleIndexComponent* triangleIndexComponents = triangleGroup.raw<TriangleIndexComponent>();
+      for (size_t triangleIndex = 0; triangleIndex < triangleGroup.size(); triangleIndex++)
+      {
+        for (size_t particleNumber = 0; particleNumber < 3; particleNumber++)
+        {
+          auto particleEntity = triangleComponents[triangleIndex].entities[particleNumber];
+          assert(particleGroup.contains(particleEntity));
+          triangleIndexComponents[triangleIndex].indices[particleNumber] = particleGroup.get<ParticleIndexComponent>(particleEntity).index;
+        }
+      }
+    }
+  }
+  
+  void IntegrateParticles(ParticleComponent* particleComponents, size_t particlesCount, float dt)
+  {
+    //glm::vec2 acc = {0.0f, 10.0f};
+    for (size_t particleIndex = 0; particleIndex < particlesCount; particleIndex++)
+    {
+      ParticleComponent& particleComponent = particleComponents[particleIndex];
+      #if defined(POSITION_BASED)
+        glm::vec2 tmpPos = particleComponent.pos;
+        particleComponent.pos += (particleComponent.pos - particleComponent.prevPos) + particleComponent.acceleration * dt * dt;
+        particleComponent.prevPos = tmpPos;
+      #else
+        particleComponent.velocity += particleComponent.acceleration * dt;
+        particleComponent.pos += particleComponent.velocity * dt;
+      #endif
+    }
+  }
+  
   void SubmitParticles(
     ParticleGroup::Type particles,
     almost::PhysicsData& physicsData,
     almost::MeshRendererData& meshRendererData)
   {
     ParticleComponent* particleComponents = particles.raw<ParticleComponent>();
-    ParticleIndexComponent* particlesIndicesComponents = particles.raw<ParticleIndexComponent>();
     for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
     {
       SubmitCircle(meshRendererData, particleComponents[particleIndex].pos, 3.0f, 15, LinearColor32(legit::Colors::belizeHole)/*favBlue*/);

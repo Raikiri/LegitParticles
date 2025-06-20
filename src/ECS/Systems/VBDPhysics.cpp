@@ -1,237 +1,27 @@
 #include <string>
 #include "VBDPhysics.h"
-#include "../../Maths/AlgebraicMultigridSolver.h"
 #include "../Context/MeshRendererData.h"
 #include "../Context/InputData.h"
 #include "../Context/CameraData.h"
 #include "../Context/WindowData.h"
-#include "SparsePhysics.h"
 #include "../../Maths/StrainConstraints/StrainConstraints.h"
 //#include "../../Maths/Tensor2.h"
 
 namespace almost
 {
-  void SolveLinksNonlinearGauss(
-    ParticleComponent* particleComponents, MassComponent* massComponents, size_t particlesCount,
-    LinkComponent* linkComponents, LinkIndexComponent* linkIndexComponents, size_t linksCount,
-    legit::CpuProfiler& profiler)
-  {
-    auto physicsTask = profiler.StartScopedTask("[Physics] Nonlinear", legit::Colors::greenSea);
-
-    for (int i = 0; i < 3; i++)
-    {
-      for (size_t linkIndex = 0; linkIndex < linksCount; linkIndex++)
-      {
-        size_t particleIndex0 = linkIndexComponents[linkIndex].indices[0];
-        MassComponent& massComponent0 = massComponents[particleIndex0];
-        ParticleComponent& particleComponent0 = particleComponents[particleIndex0];
-
-        size_t particleIndex1 = linkIndexComponents[linkIndex].indices[1];
-        MassComponent& massComponent1 = massComponents[particleIndex1];
-        ParticleComponent& particleComponent1 = particleComponents[particleIndex1];
-
-        glm::vec2 diff = particleComponent0.pos - particleComponent1.pos;
-        glm::vec2 delta = diff / (glm::length(diff) + 1e-7f);
-        float compInvMass = 1.0f / (massComponent0.invMass + massComponent1.invMass + 1e-7f);
-
-        float deltaAcceleration = glm::dot(delta, particleComponent0.acceleration - particleComponent1.acceleration);
-        //float deltaVelocity = glm::dot(delta, particleComponent0.velocity - particleComponent1.velocity);
-        float deltaPos = glm::dot(delta, particleComponent0.pos - particleComponent1.pos) - linkComponents[linkIndex].defLength;
-        if (deltaPos < 0) continue;
-        float lambdaAcceleration = deltaAcceleration * compInvMass;
-        //float lambdaVelocity = deltaVelocity * compInvMass;
-        float lambdaPos = deltaPos * compInvMass;
-
-        particleComponent0.pos += -delta * lambdaPos * massComponent0.invMass;
-        particleComponent1.pos += delta * lambdaPos * massComponent1.invMass;
-        /*particleComponent0.velocity += -delta * lambdaVelocity * massComponent0.invMass;
-        particleComponent1.velocity += delta * lambdaVelocity * massComponent1.invMass;
-        particleComponent0.acceleration += -delta * lambdaAcceleration * massComponent0.invMass;
-        particleComponent1.acceleration += delta * lambdaAcceleration * massComponent1.invMass;*/
-      }
-    }
-  }
-
-
-  void SolveTriangles(
-    ParticleComponent* particleComponents, MassComponent* massComponents, size_t particlesCount,
-    TriangleComponent* triangleComponents, TriangleIndexComponent* triangleIndexComponents, size_t trianglesCount,
-    legit::CpuProfiler& profiler)
-  {
-    auto physicsTask = profiler.StartScopedTask("[Physics] Triangles", legit::Colors::greenSea);
-
-
-    for (int i = 0; i < 3; i++)
-    {
-      for (size_t triangleIndex = 0; triangleIndex < trianglesCount; triangleIndex++)
-      {
-        almost::StaticTensor<glm::vec2, almost::StrainDynamics::ParticleDim> worldPositions;
-        almost::StaticTensor<float, almost::StrainDynamics::ParticleDim> invMasses;
-
-        for (int p = 0; p < 1; p++)
-        {
-          for (auto m : almost::StrainDynamics::ParticleDim())
-          {
-            size_t particleIndex = triangleIndexComponents[triangleIndex].indices[m.value];
-            worldPositions.Get(m) = particleComponents[particleIndex].pos;
-            invMasses.Get(m) = massComponents[particleIndex].invMass;
-          }
-          almost::StrainDynamics::ProjectTriangle(worldPositions, invMasses, triangleComponents[triangleIndex].uvFromRef);
-          for (auto m : almost::StrainDynamics::ParticleDim())
-          {
-            size_t particleIndex = triangleIndexComponents[triangleIndex].indices[m.value];
-            particleComponents[particleIndex].pos = worldPositions.Get(m);
-          }
-        }
-      }
-    }
-  }
-
-  void PreStep(
-    ParticleGroup::Type particleGroup,
-    LinkGroup::Type linkGroup,
-    TriangleGroup::Type triangleGroup,
-    legit::CpuProfiler& profiler)
-  {
-    glm::vec3 gravity = { 0.0f, -1000.0f, 0.0f };
-    ParticleComponent* particleComponents = particleGroup.raw<ParticleComponent>();
-    ParticleIndexComponent* particleIndicesComponents = particleGroup.raw<ParticleIndexComponent>();
-    MassComponent* massComponents = particleGroup.raw<MassComponent>();
-
-    {
-      auto physicsTask = profiler.StartScopedTask("[Physics] Pre step", legit::Colors::sunFlower);
-
-      for (size_t particleIndex = 0; particleIndex < particleGroup.size(); particleIndex++)
-      {
-        MassComponent& massComponent = massComponents[particleIndex];
-        ParticleComponent& particleComponent = particleComponents[particleIndex];
-        particleComponent.acceleration = massComponent.usesGravity ? gravity : glm::vec3(0.0f, 0.0f, 0.0f);
-        particleIndicesComponents[particleIndex].index = particleIndex;
-      }
-
-      LinkComponent* linkComponents = linkGroup.raw<LinkComponent>();
-      LinkIndexComponent* linkIndexComponents = linkGroup.raw<LinkIndexComponent>();
-      for (size_t linkIndex = 0; linkIndex < linkGroup.size(); linkIndex++)
-      {
-        auto particleEntity0 = linkComponents[linkIndex].entities[0];
-        auto particleEntity1 = linkComponents[linkIndex].entities[1];
-        assert(particleGroup.contains(particleEntity0));
-        assert(particleGroup.contains(particleEntity1));
-        linkIndexComponents[linkIndex].indices[0] = particleGroup.get<ParticleIndexComponent>(particleEntity0).index;
-        linkIndexComponents[linkIndex].indices[1] = particleGroup.get<ParticleIndexComponent>(particleEntity1).index;
-      }
-
-      TriangleComponent* triangleComponents = triangleGroup.raw<TriangleComponent>();
-      TriangleIndexComponent* triangleIndexComponents = triangleGroup.raw<TriangleIndexComponent>();
-      for (size_t triangleIndex = 0; triangleIndex < triangleGroup.size(); triangleIndex++)
-      {
-        for (size_t particleNumber = 0; particleNumber < 3; particleNumber++)
-        {
-          auto particleEntity = triangleComponents[triangleIndex].entities[particleNumber];
-          assert(particleGroup.contains(particleEntity));
-          triangleIndexComponents[triangleIndex].indices[particleNumber] = particleGroup.get<ParticleIndexComponent>(particleEntity).index;
-        }
-      }
-    }
-  }
-
-  void IntegrateParticles(ParticleComponent* particleComponents, size_t particlesCount, float dt)
-  {
-    for (size_t particleIndex = 0; particleIndex < particlesCount; particleIndex++)
-    {
-      ParticleComponent& particleComponent = particleComponents[particleIndex];
-      #if defined(POSITION_BASED)
-        glm::vec2 tmpPos = particleComponent.pos;
-        particleComponent.pos += (particleComponent.pos - particleComponent.prevPos) + particleComponent.acceleration * dt * dt;
-        particleComponent.prevPos = tmpPos;
-      #else
-        //particleComponent.velocity += particleComponent.acceleration * dt;
-        particleComponent.pos += particleComponent.velocity * dt;
-      #endif
-    }
-  }
-
-  void InterpCoarsePositions(almost::ParticleGroup::Type coarseParticles, almost::ParticleGroup::Type fineParticles)
-  {
-    auto* coarseMultigridComponents = coarseParticles.raw<CoarseMultigridComponent>();
-    auto* coarseParticleComponents = coarseParticles.raw<ParticleComponent>();
-    for (size_t coarseParticleIndex = 0; coarseParticleIndex < coarseParticles.size(); coarseParticleIndex++)
-    {
-      glm::vec2 res = { 0, 0 };
-      for (auto influence : coarseMultigridComponents[coarseParticleIndex].influences)
-      {
-        res += fineParticles.get<almost::ParticleComponent>(influence.particleEntity).pos * influence.weight;
-      }
-      coarseParticleComponents[coarseParticleIndex].pos = res;
-      coarseParticleComponents[coarseParticleIndex].prevPos = res;
-    }
-  }
-  void ApplyFineDeltas(almost::ParticleGroup::Type fineParticles, almost::ParticleGroup::Type coarseParticles)
-  {
-    auto* fineMultigridComponents = fineParticles.raw<FineMultigridComponent>();
-    auto* fineParticleComponents = fineParticles.raw<ParticleComponent>();
-    for (size_t fineParticleIndex = 0; fineParticleIndex < fineParticles.size(); fineParticleIndex++)
-    {
-      glm::vec2 res = { 0, 0 };
-      for (auto influence : fineMultigridComponents[fineParticleIndex].influences)
-      {
-        auto& coarseParticle = coarseParticles.get<almost::ParticleComponent>(influence.particleEntity);
-        res += (coarseParticle.pos - coarseParticle.prevPos) * influence.weight;
-      }
-      fineParticleComponents[fineParticleIndex].pos += res;
-    }
-  }
   void ProcessPhysicsVBD(
     std::vector<entt::registry>& regLayers,
     legit::CpuProfiler& profiler)
   {
+    auto &reg = regLayers[0];
     float dt = 1e-2f;
+    PreStep(
+      almost::ParticleGroup::Get(reg),
+      almost::LinkGroup::Get(reg),
+      almost::TriangleGroup::Get(reg),
+      profiler);
 
-    for (auto& layer : regLayers)
-    {
-      PreStep(
-        almost::ParticleGroup::Get(layer),
-        almost::LinkGroup::Get(layer),
-        almost::TriangleGroup::Get(layer),
-        profiler);
-    }
-
-    for (int layerIndex = 1; layerIndex < regLayers.size(); layerIndex++)
-    {
-      InterpCoarsePositions(almost::ParticleGroup::Get(regLayers[layerIndex]), almost::ParticleGroup::Get(regLayers[layerIndex - 1]));
-    }
-    for (int layerIndex = int(regLayers.size()) - 1; layerIndex >= 0; layerIndex--)
-    {
-      auto particleGroup = almost::ParticleGroup::Get(regLayers[layerIndex]);
-      auto linkGroup = almost::LinkGroup::Get(regLayers[layerIndex]);
-      auto triangleGroup = almost::TriangleGroup::Get(regLayers[layerIndex]);
-
-      //if (layerIndex == 0)
-      {
-        /*SolveLinksNonlinearGauss(
-          particleGroup.raw<almost::ParticleComponent>(), particleGroup.raw<almost::MassComponent>(), particleGroup.size(),
-          linkGroup.raw<almost::LinkComponent>(), linkGroup.raw<almost::LinkIndexComponent>(), linkGroup.size(), profiler);*/
-        SolveTriangles(
-          particleGroup.raw<almost::ParticleComponent>(), particleGroup.raw<almost::MassComponent>(), particleGroup.size(),
-          triangleGroup.raw<almost::TriangleComponent>(), triangleGroup.raw<almost::TriangleIndexComponent>(), triangleGroup.size(), profiler);
-      }
-      if(layerIndex > 0)
-        ApplyFineDeltas(almost::ParticleGroup::Get(regLayers[layerIndex - 1]), almost::ParticleGroup::Get(regLayers[layerIndex]));
-    }
-
-    /*{
-      auto particleGroup0 = almost::ParticleGroup::Get(regLayers[0]);
-      auto linkGroup0 = almost::LinkGroup::Get(regLayers[0]);
-      auto triangleGroup0 = almost::TriangleGroup::Get(regLayers[0]);
-
-      SolveLinksNonlinearGauss(
-        particleGroup0.raw<almost::ParticleComponent>(), particleGroup0.raw<almost::MassComponent>(), particleGroup0.size(),
-        linkGroup0.raw<almost::LinkComponent>(), linkGroup0.raw<almost::LinkIndexComponent>(), linkGroup0.size(), profiler);
-    }*/
-
-    {
-      auto particleGroup0 = almost::ParticleGroup::Get(regLayers[0]);
-      IntegrateParticles(particleGroup0.raw<ParticleComponent>(), particleGroup0.size(), dt);
-    }
+    auto particleGroup0 = almost::ParticleGroup::Get(reg);
+    IntegrateParticles(particleGroup0.raw<ParticleComponent>(), particleGroup0.size(), dt);
   }
 }

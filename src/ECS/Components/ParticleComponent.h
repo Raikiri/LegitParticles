@@ -3,7 +3,7 @@
 #include "../../Utils/GlmInclude.h"
 
 
-#define POSITION_BASED
+//#define POSITION_BASED
 namespace almost
 {
   struct ParticleComponent
@@ -16,25 +16,11 @@ namespace almost
     #endif
     glm::vec2 acceleration;
   };
-
-  struct Influence
-  {
-    entt::entity particleEntity;
-    float weight;
-  };
-  struct CoarseMultigridComponent
-  {
-    std::vector<Influence> influences;
-  };
-
-  struct FineMultigridComponent
-  {
-    std::vector<Influence> influences;
-  };
   struct ParticleIndexComponent
   {
     size_t index;
   };
+
   struct MassComponent
   {
     float invMass;

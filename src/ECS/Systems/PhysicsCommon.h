@@ -1,4 +1,6 @@
 #pragma once
+#include "../../LegitProfiler/ProfilerTask.h"
+#include "../../LegitVulkan/CpuProfiler.h"
 
 #include "../Context/PhysicsData.h"
 //#include "../Context/MeshRendererData.h"
@@ -29,10 +31,17 @@ namespace almost
       return reg.group<Components...>();
     }
   };
-  using ParticleGroup = Group<almost::ParticleComponent, almost::ParticleIndexComponent, almost::MassComponent, almost::DefPosComponent, almost::CoarseMultigridComponent, almost::FineMultigridComponent>;
+  using ParticleGroup = Group<almost::ParticleComponent,  almost::ParticleIndexComponent, almost::MassComponent, almost::DefPosComponent>;
   using LinkGroup = Group<almost::LinkComponent, almost::LinkIndexComponent>;
   using TriangleGroup = Group<almost::TriangleComponent, almost::TriangleIndexComponent>;
 
+  void IntegrateParticles(ParticleComponent* particleComponents, size_t particlesCount, float dt);
+  void PreStep(
+    ParticleGroup::Type particleGroup,
+    LinkGroup::Type linkGroup,
+    TriangleGroup::Type triangleGroup,
+    legit::CpuProfiler& profiler);
+      
   void ProcessPhysicsControls(
     WindowData& windowData,
     ParticleGroup::Type particles,
