@@ -3,19 +3,6 @@
 #include "../Context/MeshRendererData.h"
 namespace almost
 {
-  legit::WindowDesc GetGlfwWindowDesc(GLFWwindow *window)
-  {
-    legit::WindowDesc windowDesc = {};
-    #if defined(WIN32)
-      windowDesc.hInstance = GetModuleHandle(NULL);
-      windowDesc.hWnd = glfwGetWin32Window(window);
-    #else
-      windowDesc.display = glfwGetWaylandDisplay();
-      windowDesc.surface = glfwGetWaylandWindow(window);
-    #endif
-    return windowDesc;
-  }
-
   glm::uvec2 GetGlfwWindowClientSize(GLFWwindow *window)
   {
     int width = 0, height = 0;
@@ -29,8 +16,7 @@ namespace almost
     //const char* glfwExtensions[] = { "VK_KHR_surface", "VK_KHR_win32_surface" };
     //uint32_t glfwExtensionCount = 2;
 
-    rendererData.windowDesc = {};
-    rendererData.windowDesc = GetGlfwWindowDesc(windowData.window->glfw_window);
+    rendererData.windowDesc = windowData.window->GetWindowDesc();
 
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
