@@ -25,6 +25,7 @@
 //#include "ECS/Systems/ShaderTestbedRenderer.h"
 #include "ECS/Systems/PhysicsCommon.h"
 #include "ECS/Systems/MultigridPhysics.h"
+#include "ECS/Systems/VBDPhysics.h"
 //#include "ECS/Systems/SkeletalAnimation.h"
 #include "ECS/Systems/PhysicsAnimation.h"
 #include "ECS/Systems/Camera.h"
@@ -91,7 +92,9 @@ int main(int argsCount, char **args)
         almost::ProcessPhysicsControls(windowData, almost::ParticleGroup::Get(layer), inputData, cameraData);
       }
     }
-
+    {
+      almost::ProcessPhysicsVBD(regLayers, rendererData.inFlightQueue->GetCpuProfiler());
+    }
     {
       almost::ProcessPhysicsMultigrid(regLayers, rendererData.inFlightQueue->GetCpuProfiler());
     }

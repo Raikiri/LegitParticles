@@ -11,7 +11,7 @@
 
 namespace almost
 {
-  void SolveLinksNonlinearGauss(
+  static void SolveLinksNonlinearGauss(
     ParticleComponent* particleComponents, MassComponent* massComponents, size_t particlesCount,
     LinkComponent* linkComponents, LinkIndexComponent* linkIndexComponents, size_t linksCount,
     legit::CpuProfiler& profiler)
@@ -53,7 +53,7 @@ namespace almost
   }
 
 
-  void SolveTriangles(
+  static void SolveTriangles(
     ParticleComponent* particleComponents, MassComponent* massComponents, size_t particlesCount,
     TriangleComponent* triangleComponents, TriangleIndexComponent* triangleIndexComponents, size_t trianglesCount,
     legit::CpuProfiler& profiler)
@@ -87,7 +87,7 @@ namespace almost
     }
   }
 
-  void PreStep(
+  static void PreStep(
     ParticleGroup::Type particleGroup,
     LinkGroup::Type linkGroup,
     TriangleGroup::Type triangleGroup,
@@ -135,7 +135,7 @@ namespace almost
     }
   }
 
-  void IntegrateParticles(ParticleComponent* particleComponents, size_t particlesCount, float dt)
+  static void IntegrateParticles(ParticleComponent* particleComponents, size_t particlesCount, float dt)
   {
     for (size_t particleIndex = 0; particleIndex < particlesCount; particleIndex++)
     {
@@ -151,7 +151,7 @@ namespace almost
     }
   }
 
-  void InterpCoarsePositions(almost::ParticleGroup::Type coarseParticles, almost::ParticleGroup::Type fineParticles)
+  static void InterpCoarsePositions(almost::ParticleGroup::Type coarseParticles, almost::ParticleGroup::Type fineParticles)
   {
     auto* coarseMultigridComponents = coarseParticles.raw<CoarseMultigridComponent>();
     auto* coarseParticleComponents = coarseParticles.raw<ParticleComponent>();
@@ -166,7 +166,7 @@ namespace almost
       coarseParticleComponents[coarseParticleIndex].prevPos = res;
     }
   }
-  void ApplyFineDeltas(almost::ParticleGroup::Type fineParticles, almost::ParticleGroup::Type coarseParticles)
+  static void ApplyFineDeltas(almost::ParticleGroup::Type fineParticles, almost::ParticleGroup::Type coarseParticles)
   {
     auto* fineMultigridComponents = fineParticles.raw<FineMultigridComponent>();
     auto* fineParticleComponents = fineParticles.raw<ParticleComponent>();
