@@ -32,7 +32,8 @@
 #include "ECS/Components/LinkComponent.h"
 #include "ECS/Components/TriangleComponent.h"
 
-#include "ECS/Scenes/MultigridClothScene.h"
+//#include "ECS/Scenes/MultigridClothScene.h"
+#include "ECS/Scenes/SimpleClothScene.h"
 
 
 int main(int argsCount, char **args)
@@ -57,7 +58,8 @@ int main(int argsCount, char **args)
 
   CreateGround(regLayers[0]);
   //CreateClothPhysicsMesh(regLayers[0]);
-  CreateMultigridPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 65, 65 });
+  //CreateMultigridPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 65, 65 });
+  CreateSimpleClothPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 16, 16 });
 
   while (!reg.ctx<almost::InputData>().isWindowClosed)
   {
