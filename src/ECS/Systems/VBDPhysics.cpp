@@ -429,8 +429,8 @@ namespace almost
       float alpha = 0.95f;
       float beta = 10.0f;
       float gamma = 0.99f; //0.99f
-      float max_stiffness = 1e3f;
-      float max_lambda = 1e3f;
+      float max_stiffness = 1e4f;
+      float max_lambda = 1e4f;
       
       auto particle_group = almost::ParticleGroup::Get(reg);
       auto constraint_graph = ConstraintGraph(
