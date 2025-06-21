@@ -88,7 +88,7 @@ namespace almost
     }
     return energy;
   }
-  void ProjectVBD(
+  void ProjectVBDSlow(
     ParticleComponent* particle_components,
     const MassComponent* mass_components,
     const glm::vec2* inertial_positions,
@@ -114,6 +114,7 @@ namespace almost
         for(ratio.x = 0.0f; ratio.x < 1.0f; ratio.x += step)
         {
           glm::vec2 test_pos = particle.pos + (ratio - glm::vec2(0.5f)) * 20.0f;
+
           float test_energy = GetParticleEnergy(
             test_pos,
             particle_idx,
@@ -126,6 +127,7 @@ namespace almost
             links_count,
             constraint_graph,
             dt);
+
           if(test_energy < best_energy)
           {
             best_energy = test_energy;
@@ -134,6 +136,123 @@ namespace almost
         }
       }
       particle.pos = best_pos;
+    }
+  }
+  
+    
+  glm::mat2 SymmetricProduct(glm::vec2 r)
+  {
+    glm::mat2 m;
+    m[0][0] = r.x * r.x;
+    m[0][1] = r.x * r.y;
+    m[1][0] = r.y * r.x;
+    m[1][1] = r.y * r.y;
+    return m;
+  }
+  
+  struct EnergyDerivatives
+  {
+    glm::vec2 forces = glm::vec2{0.0};
+    glm::mat2 hessian = glm::mat2{0.0};
+  };
+  
+  //C(r) = L - |r|
+  //E(r) = 0.5 * k * |C(r)|^2
+  //f=-(d/dx, d/dy) E(r) = -kr * (1 - L / |r|)
+  
+  //l = |r|
+  //H=(xx, xy)
+  //  (yx, yy)
+
+  //H.xx = Lx^2/l^3 + 1 - L/l
+  //H.xy = xy * (L / l^3)
+  //H.yx = yx * (L / l^3)
+  //H.yy = Ly^2/l^3 + 1 - L/l
+
+
+
+  //glm::mat2 TensorProduct()
+  EnergyDerivatives GetLinkEnergyDerivatives(
+    glm::vec2 delta,
+    float def_len,
+    float stiffness)
+  {
+    float l = glm::length(delta);
+    float L = def_len;
+    float k = stiffness;
+    glm::vec2 r = delta;
+    
+    if(glm::abs(l - L) > 100)
+      int p = 1;
+    EnergyDerivatives derivatives;
+    derivatives.forces = -k * r * (1.0f - L / l);
+    derivatives.hessian = (SymmetricProduct(r) * L / (l * l * l) + glm::mat2(1.0 - L/l)) * k;
+    return derivatives;
+  }
+  
+  EnergyDerivatives GetParticleConstraintDerivatives(
+    glm::vec2 pos,
+    size_t particle_idx,
+    const ParticleComponent* particle_components,
+    const LinkIndexComponent *link_indices,
+    const LinkComponent *links,
+    const ConstraintGraph &constraint_graph)
+  {
+    EnergyDerivatives total_derivatives;
+    for(size_t link_num = 0; link_num < constraint_graph.particle_infos[particle_idx].links_count; link_num++)
+    {
+      ConstraintGraph::LinkIdx link_idx = constraint_graph.particle_links[constraint_graph.particle_infos[particle_idx].links_start + link_num];
+      size_t other_particle_idx = link_indices[link_idx].GetOtherParticleIdx(particle_idx);
+      glm::vec2 link_delta = pos - particle_components[other_particle_idx].pos;
+
+      EnergyDerivatives link_derivatives = GetLinkEnergyDerivatives(link_delta, links[link_idx].defLength, 100.0f);
+      total_derivatives.forces += link_derivatives.forces;
+      total_derivatives.hessian += link_derivatives.hessian;
+    }
+    return total_derivatives;
+  }
+  
+  void ProjectVBD(
+    ParticleComponent* particle_components,
+    const MassComponent* mass_components,
+    const glm::vec2* inertial_positions,
+    size_t particles_count,
+    const LinkIndexComponent *link_indices,
+    const LinkComponent *links,
+    size_t links_count,
+    const ConstraintGraph &constraint_graph,
+    float dt)
+  {
+    for(size_t particle_idx = 0; particle_idx < particles_count; particle_idx++)
+    {
+      auto &particle = particle_components[particle_idx];
+      auto inv_mass = mass_components[particle_idx].invMass;
+      auto inertial_pos = inertial_positions[particle_idx];
+
+      if(inv_mass > 0.0f)
+      {
+        EnergyDerivatives constrain_derivatives = GetParticleConstraintDerivatives(
+          particle.pos,
+          particle_idx,
+          particle_components,
+          link_indices,
+          links,
+          constraint_graph
+        );
+        EnergyDerivatives total_derivatives;
+        float mdt2 = 1.0 / std::max(1e-7f, dt * dt * inv_mass);
+        total_derivatives.forces = -(particle.pos - inertial_pos) * mdt2 + constrain_derivatives.forces;
+        total_derivatives.hessian = glm::mat2(mdt2) + constrain_derivatives.hessian;
+
+        if(glm::determinant(total_derivatives.hessian) > 1e-7f)
+        {
+          glm::vec2 delta = glm::inverse(total_derivatives.hessian) * total_derivatives.forces;
+          particle.pos += delta;
+        }
+      }else
+      {
+        particle.pos = inertial_pos;
+      }
     }
   }
 

@@ -11,6 +11,18 @@ namespace almost
   };
   struct LinkIndexComponent
   {
+    size_t GetOtherParticleIdx(size_t particle_idx) const
+    {
+      if(indices[0] == particle_idx)
+      {
+        return indices[1];
+      }else
+      {
+        assert(indices[1] == particle_idx);
+        return indices[0];
+      }
+    }
+
     size_t indices[2];
   };
 }
