@@ -201,6 +201,11 @@ namespace almost
   //d^2C/dydx = yx  / l^3
   //d^2C/dy^2 = y^2 / l^3 - 1/l
 
+  glm::mat2 DiagonalizeMat(glm::mat2 m)
+  {
+    return glm::mat2(glm::length(m[0]), 0.0f, 0.0f, glm::length(m[1]));
+  }
+  
   EnergyDerivatives GetLinkEnergyDerivatives2(
     glm::vec2 delta,
     float def_len,
@@ -216,7 +221,8 @@ namespace almost
     
     EnergyDerivatives derivatives;
     derivatives.grad = (k * C + lambda) * dCdx;
-    derivatives.hessian = k * SymmetricProduct(dCdx) + (k * C + lambda) * d2Cdx2;
+    //derivatives.hessian = k * SymmetricProduct(dCdx) + (k * C + lambda) * d2Cdx2;
+    derivatives.hessian = k * SymmetricProduct(dCdx) + DiagonalizeMat((k * C + lambda) * d2Cdx2);
     return derivatives;
   }
 
@@ -353,14 +359,21 @@ namespace almost
     }
   }
 
-    
+  float ClampAbs(float v, float max_val)
+  {
+    if(v > max_val) return max_val;
+    if(v < -max_val) return -max_val;
+    return v;
+  }
   void UpdateVBDConstraints(
     ParticleComponent* particle_components,
     size_t particles_count,
     const LinkIndexComponent *link_indices,
     LinkComponent *links,
     size_t links_count,
-    float beta)
+    float beta,
+    float max_stiffness,
+    float max_lambda)
   {
     for(size_t link_idx = 0; link_idx < links_count; link_idx++)
     {
@@ -370,8 +383,8 @@ namespace almost
         particle_components[indices.indices[0]].pos - particle_components[indices.indices[1]].pos;
         
       LinkState new_state = UpdateLinkState(link_delta, link.defLength, link.stiffness, link.deltaC, link.lambda, beta);
-      link.stiffness = new_state.stiffness;
-      link.lambda = new_state.lambda;
+      link.stiffness = std::min(new_state.stiffness, max_stiffness);
+      link.lambda = ClampAbs(new_state.lambda, max_lambda);
     }
   }
   
@@ -415,7 +428,9 @@ namespace almost
     {
       float alpha = 0.95f;
       float beta = 10.0f;
-      float gamma = 0.99f;
+      float gamma = 0.99f; //0.99f
+      float max_stiffness = 1e3f;
+      float max_lambda = 1e3f;
       
       auto particle_group = almost::ParticleGroup::Get(reg);
       auto constraint_graph = ConstraintGraph(
@@ -452,7 +467,9 @@ namespace almost
           link_group.raw<LinkIndexComponent>(),
           link_group.raw<LinkComponent>(),
           link_group.size(),
-          beta);
+          beta,
+          max_stiffness,
+          max_lambda);
       }
       PostprocessVBDConstraints(
         particle_group.raw<ParticleComponent>(),
