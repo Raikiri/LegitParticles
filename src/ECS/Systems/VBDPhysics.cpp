@@ -152,13 +152,13 @@ namespace almost
   
   struct EnergyDerivatives
   {
-    glm::vec2 forces = glm::vec2{0.0};
+    glm::vec2 grad = glm::vec2{0.0};
     glm::mat2 hessian = glm::mat2{0.0};
   };
   
   //C(r) = L - |r|
   //E(r) = 0.5 * k * |C(r)|^2
-  //f=-(d/dx, d/dy) E(r) = -kr * (1 - L / |r|)
+  //grad=(d/dx, d/dy) E(r) = kr * (1 - L / |r|)
   
   //l = |r|
   //H=(xx, xy)
@@ -168,8 +168,7 @@ namespace almost
   //H.xy = xy * (L / l^3)
   //H.yx = yx * (L / l^3)
   //H.yy = Ly^2/l^3 + 1 - L/l
-
-
+  
 
   //glm::mat2 TensorProduct()
   EnergyDerivatives GetLinkEnergyDerivatives(
@@ -182,14 +181,42 @@ namespace almost
     float k = stiffness;
     glm::vec2 r = delta;
     
-    if(glm::abs(l - L) > 100)
-      int p = 1;
     EnergyDerivatives derivatives;
-    derivatives.forces = -k * r * (1.0f - L / l);
+    derivatives.grad = k * r * (1.0f - L / l);
     derivatives.hessian = (SymmetricProduct(r) * L / (l * l * l) + glm::mat2(1.0 - L/l)) * k;
     return derivatives;
   }
+
+  //grad(0.5 * k * C^2(x, y))
+  //grad.x = k * C * dC/dx 
+  //grad.y = k * C * dC/dy
   
+  //Hessian(0.5 * k * C^2(x, y))
+  //H.xx = d/dx * grad.x = k * dC/dx * dC/dx + k * C * d^2C / dx^2
+  //H.xy = d/dy * grad.x = k * dC/dy * dC/dx + k * C * d^2C / dxdy
+  //H.yx = d/dx * grad.y = k * dC/dx * dC/dy + k * C * d^2C / dyfx
+  //H.yy = d/dy * grad.x = k * dC/dy * dC/dy + k * C * d^2C / dy^2
+  //d^2C/dx^2 = x^2 / l^3 - 1/l
+  //d^2C/dxdy = xy  / l^3
+  //d^2C/dydx = yx  / l^3
+  //d^2C/dy^2 = y^2 / l^3 - 1/l
+  EnergyDerivatives GetLinkEnergyDerivatives2(
+    glm::vec2 delta,
+    float def_len,
+    float stiffness)
+  {
+    float l = glm::length(delta);
+    float k = stiffness;
+    float C = def_len - l;
+    glm::vec2 dCdx = -glm::normalize(delta);
+    glm::mat2 d2Cdx2 = SymmetricProduct(delta) / (l * l * l) - glm::mat2(1.0f / l);
+    
+    EnergyDerivatives derivatives;
+    derivatives.grad = k * C * dCdx;
+    derivatives.hessian = k * (SymmetricProduct(dCdx) + C * d2Cdx2);
+    return derivatives;
+  }
+
   EnergyDerivatives GetParticleConstraintDerivatives(
     glm::vec2 pos,
     size_t particle_idx,
@@ -205,13 +232,17 @@ namespace almost
       size_t other_particle_idx = link_indices[link_idx].GetOtherParticleIdx(particle_idx);
       glm::vec2 link_delta = pos - particle_components[other_particle_idx].pos;
 
-      EnergyDerivatives link_derivatives = GetLinkEnergyDerivatives(link_delta, links[link_idx].defLength, 100.0f);
-      total_derivatives.forces += link_derivatives.forces;
+      EnergyDerivatives link_derivatives = GetLinkEnergyDerivatives2(link_delta, links[link_idx].defLength, 1000.0f);
+      total_derivatives.grad += link_derivatives.grad;
       total_derivatives.hessian += link_derivatives.hessian;
     }
     return total_derivatives;
   }
-  
+  //Augmented Vertex Block Descent
+  //CHRIS GILES, Roblox, USA
+  //ELIE DIAZ, University of Utah, USA
+  //CEM YUKSEL, University of Utah, USA
+  //https://graphics.cs.utah.edu/research/projects/avbd/Augmented_VBD-SIGGRAPH25.pdf
   void ProjectVBD(
     ParticleComponent* particle_components,
     const MassComponent* mass_components,
@@ -240,13 +271,14 @@ namespace almost
           constraint_graph
         );
         EnergyDerivatives total_derivatives;
-        float mdt2 = 1.0 / std::max(1e-7f, dt * dt * inv_mass);
-        total_derivatives.forces = -(particle.pos - inertial_pos) * mdt2 + constrain_derivatives.forces;
-        total_derivatives.hessian = glm::mat2(mdt2) + constrain_derivatives.hessian;
+        float mdt2 = 1.0f / std::max(1e-7f, dt * dt * inv_mass);
+        glm::vec2 f = -constrain_derivatives.grad;
+        glm::vec2 total_forces = -(particle.pos - inertial_pos) * mdt2 + f;
+        glm::mat2 total_hessian = glm::mat2(mdt2) + constrain_derivatives.hessian;
 
-        if(glm::determinant(total_derivatives.hessian) > 1e-7f)
+        if(glm::determinant(total_hessian) > 0.0f)
         {
-          glm::vec2 delta = glm::inverse(total_derivatives.hessian) * total_derivatives.forces;
+          glm::vec2 delta = glm::inverse(total_hessian) * total_forces;
           particle.pos += delta;
         }
       }else

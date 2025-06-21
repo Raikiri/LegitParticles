@@ -81,7 +81,7 @@ namespace almost
     LinkGroup::Type linkGroup,
     TriangleGroup::Type triangleGroup)
   {
-    glm::vec3 gravity = { 0.0f, -100.0, 0.0f };
+    glm::vec3 gravity = { 0.0f, -10000.0, 0.0f };
     ParticleComponent* particleComponents = particleGroup.raw<ParticleComponent>();
     ParticleIndexComponent* particleIndicesComponents = particleGroup.raw<ParticleIndexComponent>();
     MassComponent* massComponents = particleGroup.raw<MassComponent>();
