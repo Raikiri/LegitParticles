@@ -33,6 +33,7 @@ namespace almost
   void ProcessPhysicsControls(
     WindowData& windowData,
     almost::ParticleGroup::Type particles,
+    almost::LinkGroup::Type links,
     InputData& inputData,
     CameraData& cameraData)
   {
@@ -40,6 +41,7 @@ namespace almost
     MassComponent* massComponents = particles.raw<MassComponent>();
     DefPosComponent* defPosComponents = particles.raw<DefPosComponent>();
 
+    LinkComponent* link_components = links.raw<LinkComponent>();
     if (glfwGetKey(windowData.window->glfw_window, GLFW_KEY_SPACE))
     {
       for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
@@ -52,6 +54,13 @@ namespace almost
 #else
         particleComponent.velocity = glm::vec2(0.0f);
 #endif
+      }
+      for(size_t link_idx = 0; link_idx < links.size(); link_idx++)
+      {
+        auto &link = link_components[link_idx];
+        link.deltaC = 0.0f;
+        link.lambda = 0.0f;
+        link.stiffness = 0.0f;
       }
     }
 
@@ -81,7 +90,7 @@ namespace almost
     LinkGroup::Type linkGroup,
     TriangleGroup::Type triangleGroup)
   {
-    glm::vec3 gravity = { 0.0f, -10000.0, 0.0f };
+    glm::vec3 gravity = { 0.0f, -1000.0, 0.0f };
     ParticleComponent* particleComponents = particleGroup.raw<ParticleComponent>();
     ParticleIndexComponent* particleIndicesComponents = particleGroup.raw<ParticleIndexComponent>();
     MassComponent* massComponents = particleGroup.raw<MassComponent>();

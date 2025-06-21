@@ -200,20 +200,23 @@ namespace almost
   //d^2C/dxdy = xy  / l^3
   //d^2C/dydx = yx  / l^3
   //d^2C/dy^2 = y^2 / l^3 - 1/l
+
   EnergyDerivatives GetLinkEnergyDerivatives2(
     glm::vec2 delta,
     float def_len,
-    float stiffness)
+    float stiffness,
+    float deltaC,
+    float lambda)
   {
     float l = glm::length(delta);
     float k = stiffness;
-    float C = def_len - l;
+    float C = def_len - l + deltaC;
     glm::vec2 dCdx = -glm::normalize(delta);
     glm::mat2 d2Cdx2 = SymmetricProduct(delta) / (l * l * l) - glm::mat2(1.0f / l);
     
     EnergyDerivatives derivatives;
-    derivatives.grad = k * C * dCdx;
-    derivatives.hessian = k * (SymmetricProduct(dCdx) + C * d2Cdx2);
+    derivatives.grad = (k * C + lambda) * dCdx;
+    derivatives.hessian = k * SymmetricProduct(dCdx) + (k * C + lambda) * d2Cdx2;
     return derivatives;
   }
 
@@ -231,8 +234,8 @@ namespace almost
       ConstraintGraph::LinkIdx link_idx = constraint_graph.particle_links[constraint_graph.particle_infos[particle_idx].links_start + link_num];
       size_t other_particle_idx = link_indices[link_idx].GetOtherParticleIdx(particle_idx);
       glm::vec2 link_delta = pos - particle_components[other_particle_idx].pos;
-
-      EnergyDerivatives link_derivatives = GetLinkEnergyDerivatives2(link_delta, links[link_idx].defLength, 1000.0f);
+      auto link = links[link_idx];
+      EnergyDerivatives link_derivatives = GetLinkEnergyDerivatives2(link_delta, link.defLength, link.stiffness, link.deltaC, link.lambda);
       total_derivatives.grad += link_derivatives.grad;
       total_derivatives.hessian += link_derivatives.hessian;
     }
@@ -288,6 +291,90 @@ namespace almost
     }
   }
 
+  struct LinkState
+  {
+    float lambda;
+    float stiffness;
+    float Cstar;
+  };
+  LinkState UpdateLinkState(
+    glm::vec2 delta,
+    float def_len,
+    float stiffness,
+    float deltaC,
+    float lambda,
+    float beta)
+  {
+    float l = glm::length(delta);
+    float k = stiffness;
+    float Cstar = def_len - l;
+    float C = Cstar + deltaC;
+
+    LinkState new_state;
+    new_state.stiffness = stiffness + beta * glm::abs(C);
+    new_state.lambda = stiffness * C + lambda;
+    new_state.Cstar = Cstar;
+    return new_state;
+  }
+  
+  void InitVBDConstraints(
+    const LinkIndexComponent *link_indices,
+    LinkComponent *links,
+    size_t links_count,
+    float alpha,
+    float gamma)
+  {
+    for(size_t link_idx = 0; link_idx < links_count; link_idx++)
+    {
+      auto &link = links[link_idx];
+      link.stiffness = std::max(1.0f, link.stiffness * gamma);
+      link.lambda *= alpha * gamma;
+    }
+  }
+
+  void PostprocessVBDConstraints(
+    ParticleComponent* particle_components,
+    size_t particles_count,
+    const LinkIndexComponent *link_indices,
+    LinkComponent *links,
+    size_t links_count,
+    float alpha,
+    float beta)
+  {
+    for(size_t link_idx = 0; link_idx < links_count; link_idx++)
+    {
+      auto &link = links[link_idx];
+      auto indices = link_indices[link_idx];
+      glm::vec2 link_delta = 
+        particle_components[indices.indices[0]].pos - particle_components[indices.indices[1]].pos;
+        
+      LinkState new_state = UpdateLinkState(link_delta, link.defLength, link.stiffness, link.deltaC, link.lambda, beta);
+      link.deltaC = -new_state.Cstar * alpha;
+    }
+  }
+
+    
+  void UpdateVBDConstraints(
+    ParticleComponent* particle_components,
+    size_t particles_count,
+    const LinkIndexComponent *link_indices,
+    LinkComponent *links,
+    size_t links_count,
+    float beta)
+  {
+    for(size_t link_idx = 0; link_idx < links_count; link_idx++)
+    {
+      auto &link = links[link_idx];
+      auto indices = link_indices[link_idx];
+      glm::vec2 link_delta = 
+        particle_components[indices.indices[0]].pos - particle_components[indices.indices[1]].pos;
+        
+      LinkState new_state = UpdateLinkState(link_delta, link.defLength, link.stiffness, link.deltaC, link.lambda, beta);
+      link.stiffness = new_state.stiffness;
+      link.lambda = new_state.lambda;
+    }
+  }
+  
   void ProcessPhysicsVBD(
     std::vector<entt::registry>& regLayers,
     legit::CpuProfiler& profiler)
@@ -326,6 +413,10 @@ namespace almost
       }
     }else
     {
+      float alpha = 0.95f;
+      float beta = 10.0f;
+      float gamma = 0.99f;
+      
       auto particle_group = almost::ParticleGroup::Get(reg);
       auto constraint_graph = ConstraintGraph(
          link_group.raw<LinkIndexComponent>(), link_group.size(),
@@ -335,6 +426,14 @@ namespace almost
       inertial_positions.resize(particle_group.size());
       GetParticleInertialPositions(particle_group.raw<ParticleComponent>(), inertial_positions.data(), particle_group.size(), dt);
       AssignInertialPositions(particle_group.raw<ParticleComponent>(), inertial_positions.data(), particle_group.size());
+
+      InitVBDConstraints(
+        link_group.raw<LinkIndexComponent>(),
+        link_group.raw<LinkComponent>(),
+        link_group.size(),
+        alpha,
+        gamma);
+
       for(int i = 0; i < 10; i++)
       {
         ProjectVBD(
@@ -347,7 +446,22 @@ namespace almost
           link_group.size(),
           constraint_graph,
           dt);
+        UpdateVBDConstraints(
+          particle_group.raw<ParticleComponent>(),
+          particle_group.size(),
+          link_group.raw<LinkIndexComponent>(),
+          link_group.raw<LinkComponent>(),
+          link_group.size(),
+          beta);
       }
+      PostprocessVBDConstraints(
+        particle_group.raw<ParticleComponent>(),
+        particle_group.size(),
+        link_group.raw<LinkIndexComponent>(),
+        link_group.raw<LinkComponent>(),
+        link_group.size(),
+        alpha,
+        beta);
       //AssignInertialPositions(particle_group.raw<ParticleComponent>(), inertial_positions.data(), particle_group.size());
       int p = 1;
     }

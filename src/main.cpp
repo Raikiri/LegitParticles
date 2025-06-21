@@ -89,7 +89,7 @@ int main(int argsCount, char **args)
       almost::UpdateCamera(reg.ctx<almost::WindowData>(), reg.ctx<almost::RendererData>(), reg.ctx<almost::InputData>(), reg.ctx<almost::CameraData>());
       for (auto& layer : regLayers)
       {
-        almost::ProcessPhysicsControls(windowData, almost::ParticleGroup::Get(layer), inputData, cameraData);
+        almost::ProcessPhysicsControls(windowData, almost::ParticleGroup::Get(layer), almost::LinkGroup::Get(layer), inputData, cameraData);
       }
     }
     {

@@ -45,6 +45,7 @@ namespace almost
   void ProcessPhysicsControls(
     WindowData& windowData,
     ParticleGroup::Type particles,
+    LinkGroup::Type links,
     InputData& inputData,
     CameraData& cameraData);
   

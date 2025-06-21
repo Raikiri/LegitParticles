@@ -7,7 +7,10 @@ namespace almost
   struct LinkComponent
   {
     entt::entity entities[2];
-    float defLength;
+    float defLength = 0.0f;
+    float stiffness = 0.0f;
+    float lambda = 0.0f;
+    float deltaC = 0.0f;
   };
   struct LinkIndexComponent
   {
