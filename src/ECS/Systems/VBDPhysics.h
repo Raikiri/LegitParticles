@@ -1,6 +1,6 @@
 #pragma once
-#include "../../LegitProfiler/ProfilerTask.h"
-#include "../../LegitVulkan/CpuProfiler.h"
+#include "LegitProfiler/ProfilerTask.h"
+#include "LegitVulkan/CpuProfiler.h"
 
 #include "../Context/PhysicsData.h"
 //#include "../Context/MeshRendererData.h"

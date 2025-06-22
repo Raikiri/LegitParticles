@@ -1,5 +1,5 @@
 #pragma once
-#include "../../LegitGLFW/LegitGLFW.h"
+#include "LegitGLFW/LegitGLFW.h"
 
 namespace almost
 {

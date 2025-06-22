@@ -15,6 +15,7 @@ set(ENTT_INCLUDE_DIR ./dependencies/entt)
 set(GLM_INCLUDE_DIR ./dependencies/glm/include)
 set(JSONCPP_INCLUDE_DIR ./dependencies/jsoncpp)
 set(IMGUI_INCLUDE_DIR ./dependencies/imgui)
+set(LEGIT_VULKAN_INCLUDE_DIR ./dependencies/LegitVulkan)
 
 
 find_package(GLFW3)
@@ -42,6 +43,8 @@ include_directories ("${GLI_INCLUDE_DIR}")
 include_directories ("${TINYOBJ_INCLUDE_DIR}")
 include_directories ("${JSONCPP_INCLUDE_DIR}")
 include_directories ("${IMGUI_INCLUDE_DIR}")
+include_directories ("${LEGIT_VULKAN_INCLUDE_DIR}")
+
 
 file(GLOB_RECURSE dep_sources ${SPIRVCROSS_INCLUDE_DIR}/*.cpp ${TINYOBJ_INCLUDE_DIR}/*.cc ${JSONCPP_INCLUDE_DIR}/*.cpp ${IMGUI_INCLUDE_DIR}/*.cpp)
 file(GLOB_RECURSE legit_sources ./src/*.cpp)

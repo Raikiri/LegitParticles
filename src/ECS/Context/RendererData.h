@@ -1,9 +1,9 @@
 #pragma once
-#include "../../LegitVulkan/LegitVulkan.h"
+#include "LegitVulkan/LegitVulkan.h"
 #include "../../Utils/GlmInclude.h"
 #include "imgui.h"
-#include "../../LegitProfiler/ImGuiProfilerRenderer.h"
-#include "../../LegitImGui/ImGuiRenderer.h"
+#include "LegitProfiler/ImGuiProfilerRenderer.h"
+#include "LegitImGui/ImGuiRenderer.h"
 
 namespace almost
 {
