@@ -220,7 +220,7 @@ namespace almost
     glm::mat2 d2Cdx2 = SymmetricProduct(delta) / (l * l * l) - glm::mat2(1.0f / l);
     
     EnergyDerivatives derivatives;
-    derivatives.grad = (k * C + lambda) * dCdx;
+    derivatives.grad = std::min(k * C + lambda, 0.0f) * dCdx;
     //derivatives.hessian = k * SymmetricProduct(dCdx) + (k * C + lambda) * d2Cdx2;
     derivatives.hessian = k * SymmetricProduct(dCdx) + DiagonalizeMat((k * C + lambda) * d2Cdx2);
     return derivatives;
@@ -327,13 +327,14 @@ namespace almost
     const LinkIndexComponent *link_indices,
     LinkComponent *links,
     size_t links_count,
+    float min_stiffness,
     float alpha,
     float gamma)
   {
     for(size_t link_idx = 0; link_idx < links_count; link_idx++)
     {
       auto &link = links[link_idx];
-      link.stiffness = std::max(1.0f, link.stiffness * gamma);
+      link.stiffness = std::max(min_stiffness, link.stiffness * gamma);
       link.lambda *= alpha * gamma;
     }
   }
@@ -383,8 +384,14 @@ namespace almost
         particle_components[indices.indices[0]].pos - particle_components[indices.indices[1]].pos;
         
       LinkState new_state = UpdateLinkState(link_delta, link.defLength, link.stiffness, link.deltaC, link.lambda, beta);
-      link.stiffness = std::min(new_state.stiffness, max_stiffness);
       link.lambda = ClampAbs(new_state.lambda, max_lambda);
+      if(link.lambda < 0.0f)
+      {
+        link.stiffness = std::min(new_state.stiffness, max_stiffness);
+      }else
+      {
+        link.lambda = 0.0f;
+      }
     }
   }
   
@@ -402,7 +409,8 @@ namespace almost
         almost::TriangleGroup::Get(reg));
     }
     static bool use_simple_solver = true;
-    ImGui::Checkbox("Use simple solver", &use_simple_solver);
+    if(ImGui::RadioButton("PBD", use_simple_solver == true)) use_simple_solver = true;
+    if(ImGui::RadioButton("AVBD", use_simple_solver != true)) use_simple_solver = false;
 
     auto particle_group = almost::ParticleGroup::Get(reg);
     auto link_group = almost::LinkGroup::Get(reg);
@@ -427,10 +435,19 @@ namespace almost
     }else
     {
       float alpha = 0.95f;
-      float beta = 10.0f;
+      float beta = 1.0f;
       float gamma = 0.99f; //0.99f
-      float max_stiffness = 1e4f;
+      float min_stiffness = 1e1f;
+      float max_stiffness = 1e5f;
       float max_lambda = 1e4f;
+      
+      static bool warmstarting = false;
+      ImGui::Checkbox("Warmstarting", &warmstarting);
+      if(!warmstarting)
+      {
+        gamma = 0.0f;
+        alpha = 0.0f;
+      }
       
       auto particle_group = almost::ParticleGroup::Get(reg);
       auto constraint_graph = ConstraintGraph(
@@ -446,6 +463,7 @@ namespace almost
         link_group.raw<LinkIndexComponent>(),
         link_group.raw<LinkComponent>(),
         link_group.size(),
+        min_stiffness,
         alpha,
         gamma);
 

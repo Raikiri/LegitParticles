@@ -66,7 +66,7 @@ namespace almost
 
     glm::vec2 camRightVec = glm::vec2(cos(cameraData.ang), sin(cameraData.ang));
     glm::vec2 camUpVec = glm::vec2(-camRightVec.y, camRightVec.x);
-    bool isControlled = ImGui::IsMouseDown(0) && !ImGui::IsAnyWindowFocused();
+    bool isControlled = ImGui::IsMouseDown(0) && !ImGui::IsAnyWindowHovered() && !ImGui::IsAnyItemHovered();
     for (size_t particleIndex = 0; particleIndex < particles.size(); particleIndex++)
     {
       DefPosComponent& defPosComponent = defPosComponents[particleIndex];
@@ -77,7 +77,7 @@ namespace almost
         glm::vec2 dstPos = inputData.worldMousePos + camRightVec * defPosComponent.defPos.x + camUpVec * defPosComponent.defPos.y * 0.0f;
         particleComponent.pos = isControlled ? dstPos : particleComponent.pos;
 #if defined(POSITION_BASED)
-        //particleComponent.pos = isControlled ? dstPos : particleComponent.pos;
+        particleComponent.prevPos = isControlled ? dstPos : particleComponent.pos;
 #else
         //particleComponent.velocity = isControlled ? ((dstPos - particleComponent.pos) * 100.0f) : glm::vec2(0.0f);
 #endif
@@ -90,7 +90,7 @@ namespace almost
     LinkGroup::Type linkGroup,
     TriangleGroup::Type triangleGroup)
   {
-    glm::vec3 gravity = { 0.0f, -1000.0, 0.0f };
+    glm::vec3 gravity = { 0.0f, -5000.0, 0.0f };
     ParticleComponent* particleComponents = particleGroup.raw<ParticleComponent>();
     ParticleIndexComponent* particleIndicesComponents = particleGroup.raw<ParticleIndexComponent>();
     MassComponent* massComponents = particleGroup.raw<MassComponent>();
@@ -151,7 +151,7 @@ namespace almost
       float deltaAcceleration = glm::dot(delta, particleComponent0.acceleration - particleComponent1.acceleration);
       //float deltaVelocity = glm::dot(delta, particleComponent0.velocity - particleComponent1.velocity);
       float deltaPos = glm::dot(delta, particleComponent0.pos - particleComponent1.pos) - linkComponents[linkIndex].defLength;
-      //if (deltaPos < 0) continue;
+      if (deltaPos < 0) continue;
       float lambdaAcceleration = deltaAcceleration * compInvMass;
       //float lambdaVelocity = deltaVelocity * compInvMass;
       float lambdaPos = deltaPos * compInvMass;

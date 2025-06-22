@@ -61,7 +61,7 @@ int main(int argsCount, char **args)
   CreateGround(regLayers[0]);
   //CreateClothPhysicsMesh(regLayers[0]);
   //CreateMultigridPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 65, 65 });
-  CreateSimpleClothPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 2, 65 });
+  CreateSimpleClothPhysicsMesh(regLayers, { -200, -200 }, { 200, 200 }, { 32, 32 });
 
   while (!reg.ctx<almost::InputData>().isWindowClosed)
   {
@@ -109,7 +109,7 @@ int main(int argsCount, char **args)
       {
         almost::SubmitTriangles(almost::ParticleGroup::Get(layer), almost::TriangleGroup::Get(layer), physicsData, meshRendererData);
         almost::SubmitLinks(almost::ParticleGroup::Get(layer), almost::LinkGroup::Get(layer), physicsData, meshRendererData);
-        almost::SubmitParticles(almost::ParticleGroup::Get(layer), physicsData, meshRendererData);
+        //almost::SubmitParticles(almost::ParticleGroup::Get(layer), physicsData, meshRendererData);
       }
 
       //almost::SubmitAnimation(animationData, meshRendererData);
