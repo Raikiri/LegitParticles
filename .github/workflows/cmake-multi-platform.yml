@@ -70,8 +70,13 @@ jobs:
           cmake \
           ninja-build \
           xorg-dev \
-          libgl1-mesa-dev \
-          libglu1-mesa-dev
+          libxkbcommon-dev \
+          libxkbcommon-x11-dev \
+          libwayland-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libxi-dev
           
     - name: Install system dependencies (macOS)
       if: runner.os == 'macOS'
