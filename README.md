@@ -68,9 +68,15 @@ void ProjectVBD(
 
 # Libraries used
 LegitVulkan (rendering)
+
 LegitProfiler (profiler UI)
+
 entt (ECS implementation with a memory layout convenient for physics)
+
 imgui (UI)
+
 glfw (window management)
+
 glm (vector maths)
+
 spirv-cross (reflection)
