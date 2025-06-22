@@ -271,7 +271,7 @@ namespace almost
 
       if(inv_mass > 0.0f)
       {
-        EnergyDerivatives constrain_derivatives = GetParticleConstraintDerivatives(
+        EnergyDerivatives constraint_derivatives = GetParticleConstraintDerivatives(
           particle.pos,
           particle_idx,
           particle_components,
@@ -281,9 +281,9 @@ namespace almost
         );
         EnergyDerivatives total_derivatives;
         float mdt2 = 1.0f / std::max(1e-7f, dt * dt * inv_mass);
-        glm::vec2 f = -constrain_derivatives.grad;
+        glm::vec2 f = -constraint_derivatives.grad;
         glm::vec2 total_forces = -(particle.pos - inertial_pos) * mdt2 + f;
-        glm::mat2 total_hessian = glm::mat2(mdt2) + constrain_derivatives.hessian;
+        glm::mat2 total_hessian = glm::mat2(mdt2) + constraint_derivatives.hessian;
 
         if(glm::determinant(total_hessian) > 0.0f)
         {
