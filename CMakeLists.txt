@@ -55,6 +55,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 )
 
 target_sources(${PROJECT_NAME} PRIVATE ${dep_sources} ${legit_sources} ${legit_headers})
+target_compile_features(${PROJECT_NAME}  PRIVATE cxx_std_17) #entt requires C++17
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan glfw)
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/cmaked")
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/cmake")
