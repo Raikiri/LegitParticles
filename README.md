@@ -48,7 +48,7 @@ void ProjectVBD(
           links,
           constraint_graph
         );
-        EnergyDerivatives total_derivatives;
+
         float mdt2 = 1.0f / std::max(1e-7f, dt * dt * inv_mass);
         glm::vec2 f = -constraint_derivatives.grad;
         glm::vec2 total_forces = -(particle.pos - inertial_pos) * mdt2 + f;
