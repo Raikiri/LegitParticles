@@ -1,0 +1,3 @@
+[submodule "src/LegitVulkan"]
+	path = src/LegitVulkan
+	url = https://github.com/Raikiri/LegitVulkan.git
