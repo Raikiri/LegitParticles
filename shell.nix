@@ -1,42 +1,57 @@
+
+
 with import <nixpkgs> {};
 
 mkShell {
-  name = "dotnet";
+  name = "Legit shell";
   packages = [
-    wayland-scanner
-    cmake
     clang
     lldb
-    gnumake
     powershell
-    vulkan-headers
-    vulkan-loader
-    vulkan-validation-layers
-    vulkan-tools        # vulkaninfo
     glslang
-    shaderc             # GLSL to SPIRV compiler - glslc
-    renderdoc           # Graphics debugger
-    tracy               # Graphics profiler
-    vulkan-tools-lunarg # vkconfig
+    shaderc
+    renderdoc
+    tracy
+    vulkan-validation-layers
+    vulkan-tools-lunarg
+    #vulkan-tools        # vulkaninfo
   ];
 
   buildInputs = with pkgs; [
-    pkg-config
+    cmake
+    ninja
+
+    vulkan-headers
+    vulkan-loader
+
     wayland
     wayland-protocols
+    wayland-scanner
+    
+    xorg.libX11
+    xorg.libXcursor
+    xorg.libXrandr
+    xorg.libXinerama
+    xorg.libXi
+
     libxkbcommon
+
+    pkg-config
+    #autoPatchelfHook
   ];
   nativeBuildInputs = [
   ];
 
   
-  LD_LIBRARY_PATH="${libxkbcommon}/lib:${freetype}/lib:${vulkan-loader}/lib:${vulkan-headers}/lib:${vulkan-validation-layers}";
-  #VULKAN_SDK_PATH = "${vulkan-headers}";
-  
-  #this fixes glfw wayland initialization error by using x11 instead
+  LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+    pkgs.libxkbcommon
+    pkgs.vulkan-loader
+    pkgs.vulkan-headers
+    pkgs.vulkan-validation-layers
+    pkgs.wayland
+  ];
+
   shellHook = ''
-          export LD_LIBRARY_PATH=${pkgs.wayland}/lib:$LD_LIBRARY_PATH
-          '';
+    echo Library path: $LD_LIBRARY_PATH
+  '';
 }
-
-

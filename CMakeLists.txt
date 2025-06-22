@@ -18,6 +18,7 @@ set(IMGUI_INCLUDE_DIR ./dependencies/imgui)
 
 
 #set(GLFW_BUILD_WAYLAND ON)
+#set(GLFW_BUILD_X11 OFF)
 set(GLFW_BUILD_DOCS OFF)
 set(GLFW_BUILD_TESTS OFF)
 set(GLFW_BUILD_EXAMPLES OFF)
@@ -46,7 +47,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
   $<$<CONFIG:Debug>:-O0>
 )
 
-#source_group(TREE src/)
 target_sources(${PROJECT_NAME} PRIVATE ${dep_sources} ${legit_sources} ${legit_headers})
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan glfw)
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/cmaked")
