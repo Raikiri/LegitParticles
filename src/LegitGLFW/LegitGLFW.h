@@ -69,7 +69,7 @@ namespace legit
       friend struct WindowFactory; 
     };
     
-    std::unique_ptr<Window> CreateWindow(size_t width, size_t height, std::string caption, GLFWmonitor *mon = nullptr, GLFWwindow *share = nullptr)
+    std::unique_ptr<Window> Create(size_t width, size_t height, std::string caption, GLFWmonitor *mon = nullptr, GLFWwindow *share = nullptr)
     {
       return std::unique_ptr<Window>(new Window(width, height, caption, mon, share));
     }
