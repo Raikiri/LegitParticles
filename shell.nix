@@ -20,6 +20,8 @@ mkShell {
   buildInputs = with pkgs; [
     cmake
     ninja
+    
+    #glfw
 
     vulkan-headers
     vulkan-loader
