@@ -2,9 +2,9 @@
 #include <memory>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#define NOMINMAX
 
 #if defined(WIN32)
+  #define NOMINMAX
   #define GLFW_EXPOSE_NATIVE_WIN32
 #else
   #define GLFW_EXPOSE_NATIVE_WAYLAND

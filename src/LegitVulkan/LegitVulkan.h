@@ -1,6 +1,7 @@
 #pragma once
 
 #if defined(WIN32)
+  #define NOMINMAX
   #define VK_USE_PLATFORM_WIN32_KHR
 #else
   #define VK_USE_PLATFORM_WAYLAND_KHR
