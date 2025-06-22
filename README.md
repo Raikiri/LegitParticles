@@ -1,5 +1,5 @@
 # LegitParticles
-![multiplatform build](https://github.com/Raikiri/LegitParticles/.github/workflows/cmake-multi-platform.yml/badge.svg)
+![multiplatform build](https://github.com/Raikiri/LegitParticles/actions/workflows/cmake-multi-platform.yml/badge.svg)
 
 ![image](https://github.com/user-attachments/assets/34713cb3-e3cb-454e-b40f-ea8d4ea15a85)
 
