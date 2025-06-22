@@ -3,8 +3,7 @@ with import <nixpkgs> {};
 mkShell {
   name = "dotnet";
   packages = [
-    wayland
-    glfw
+    wayland-scanner
     cmake
     clang
     lldb
@@ -22,11 +21,16 @@ mkShell {
   ];
 
   buildInputs = with pkgs; [
+    pkg-config
+    wayland
+    wayland-protocols
+    libxkbcommon
+  ];
+  nativeBuildInputs = [
   ];
 
-
   
-  LD_LIBRARY_PATH="${glfw}/lib:${freetype}/lib:${vulkan-loader}/lib:${vulkan-headers}/lib:${vulkan-validation-layers}";
+  LD_LIBRARY_PATH="${libxkbcommon}/lib:${freetype}/lib:${vulkan-loader}/lib:${vulkan-headers}/lib:${vulkan-validation-layers}";
   #VULKAN_SDK_PATH = "${vulkan-headers}";
   
   #this fixes glfw wayland initialization error by using x11 instead
