@@ -57,7 +57,7 @@ namespace legit
         legit::WindowDesc windowDesc = {};
         #if defined(WIN32)
           windowDesc.hInstance = GetModuleHandle(NULL);
-          windowDesc.hWnd = glfwGetWin32Window(window);
+          windowDesc.hWnd = glfwGetWin32Window(glfw_window);
         #else
           windowDesc.display = glfwGetWaylandDisplay();
           windowDesc.surface = glfwGetWaylandWindow(glfw_window);
