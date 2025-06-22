@@ -1,4 +1,6 @@
 # LegitParticles
+![multiplatform build](https://github.com/Raikiri/LegitParticles/.github/workflows/cmake-multi-platform.yml/badge.svg)
+
 ![image](https://github.com/user-attachments/assets/34713cb3-e3cb-454e-b40f-ea8d4ea15a85)
 
 This is an AVBD implementation faithful to the original paper by Chris Giles, Elie Diaz and Cem Yuskel (link in the description). The demo only link constraints for particles, it's only marginally optimized and runs CPU-side. Both PBD and AVBD solvers use 10 iterations and run in comparable time.
